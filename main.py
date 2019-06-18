@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
 
 import bisect
+import collections
 import decimal
 import json
 import logging
 import os
+import types
 
 import dateutil.parser
 from flask import current_app, Flask, g, redirect, render_template, request, session, url_for
@@ -21,7 +23,7 @@ class Config():
         for r in sheet['values']:
             name = r[0].replace(' ', '_').lower()
             if name in ('children', 'nannies'):
-                val = r[1].split()
+                val = list(map(str.strip, r[1].split(',')))
             else:
                 val = decimal.Decimal(r[1])
             setattr(self, name, val)
@@ -82,10 +84,20 @@ class Hours():
                 self.data[name] = val and decimal.Decimal(val) or decimal.Decimal(0)
 
     def date(self): return self.date
-    def both(self): return self.data['Both']
-    def bothot(self): return self.data['Both OT']
-    def child(self, name): return self.data[name]
-    def childot(self, name): return self.data[name + ' OT']
+    def hours(self, name): return self.data.get(name, decimal.Decimal())
+    def __repr__(self): return str(self.__dict__)
+
+    @classmethod
+    def parseSheet(cls, sheet):
+        return [ cls(sheet['values'][0], r) for r in sheet['values'][1:] ]
+
+
+class Reimbursement():
+    def __init__(self, header, row):
+        for name, val in zip(header, row):
+            if name == 'Date': self.date = dateutil.parser.parse(val)
+            elif name == 'Amount': self.amount = decimal.Decimal(val)
+            elif name == 'Notes': self.notes = val
     def __repr__(self): return str(self.__dict__)
 
     @classmethod
@@ -101,27 +113,31 @@ def get_api():
 
 
 def get_config_data():
-    config  = None
-
     if current_app.config['ENV'] == 'development' and os.path.isfile('config.json'):
         with open('config.json', 'r') as fp:
             config = json.load(fp)
     else:
-        config = get_api().values().batchGet(spreadsheetId=current_app.config['SPREADSHEET_ID'], ranges=['Config', 'PayPeriods', 'Single Bracket', 'Married Bracket']).execute()
+        config = get_api().values().batchGet(spreadsheetId=current_app.config['SPREADSHEET_ID'], ranges=['Config', 'PayPeriods']).execute()
         if current_app.config['ENV'] == 'development':
             with open('config.json', 'w') as fp:
                 json.dump(config, fp)
+    return Config(config['valueRanges'][0]), PayPeriod.parseSheet(config['valueRanges'][1])
 
-    sconfig   = Config(config['valueRanges'][0])
-    periods   = PayPeriod.parseSheet(config['valueRanges'][1])
-    taxtables = TaxTables(*config['valueRanges'][2:])
 
-    return sconfig, periods, taxtables
+def get_tax_data():
+    if current_app.config['ENV'] == 'development' and os.path.isfile('tax.json'):
+        with open('tax.json', 'r') as fp:
+            tax = json.load(fp)
+    else:
+        tax = get_api().values().batchGet(spreadsheetId=current_app.config['SPREADSHEET_ID'], ranges=['Single Bracket', 'Married Bracket']).execute()
+        if current_app.config['ENV'] == 'development':
+            with open('tax.json', 'w') as fp:
+                json.dump(tax, fp)
+
+    return TaxTables(*tax['valueRanges'])
 
 
 def get_nanny_data(name):
-    data = None
-
     if current_app.config['ENV'] == 'development' and os.path.isfile('{}.json'.format(name)):
         with open('{}.json'.format(name), 'r') as fp:
             data = json.load(fp)
@@ -131,38 +147,80 @@ def get_nanny_data(name):
             with open('{}.json'.format(name), 'w') as fp:
                 json.dump(data, fp)
 
-    return data
+    return types.SimpleNamespace(hours = Hours.parseSheet(data['valueRanges'][0]), reimbursements = Reimbursement.parseSheet(data['valueRanges'][1]))
+
+
+def calculate_gross(sconfig, periods):
+
+    ret = dict()
+
+    keymap = dict()
+    ytdmap = dict()
+    for child in sconfig.children:
+        keymap[child]          = (('Single',    child), 0)
+        keymap[child + ' OT']  = (('Single OT', child + ' OT'), 2)
+        keymap['Both']         = (('Both',), 1)
+        keymap['Both OT']      = (('Both OT',), 3)
+        keymap['Sick']         = (('Sick',), 1)
+        keymap['Vacation']     = (('Vacation',), 1)
+
+        ytdmap[child]          = (('Single YTD',    child + ' YTD'), 0)
+        ytdmap[child + ' OT']  = (('Single OT YTD', child + ' OT YTD'), 2)
+        ytdmap['Both']         = (('Both YTD',), 1)
+        ytdmap['Both OT']      = (('Both OT YTD',), 3)
+        ytdmap['Sick']         = (('Sick YTD',), 1)
+        ytdmap['Vacation']     = (('Vacation YTD',), 1)
+
+
+    for name in sconfig.nannies:
+        ndata = get_nanny_data(name)
+        ret[name] = dict()
+
+        for ii, period in enumerate(periods):
+            start = period.startDate()
+            end   = period.endDate()
+            rates = period.rates(name)
+
+            ret[name][end] = dict()
+            p = ret[name][end]['hours'] = collections.defaultdict(decimal.Decimal)
+            s = ret[name][end]['sums'] = collections.defaultdict(decimal.Decimal)
+
+            for h in ndata.hours:
+                if h.date > end: break
+
+                for hrkey, (dkeys, rate) in ytdmap.items():
+                    for dkey in dkeys:
+                        p[dkey] += h.hours(hrkey)
+                        s[dkey] += h.hours(hrkey) * rates[rate]
+
+                if h.date < start: continue
+
+                for hrkey, (dkeys, rate) in keymap.items():
+                    for dkey in dkeys:
+                        p[dkey] += h.hours(hrkey)
+                        s[dkey] += h.hours(hrkey) * rates[rate]
+
+    return ret
 
 
 @app.route('/')
 def index():
 
-    sconfig, periods, taxtables = get_config_data()
+    sconfig, periods = get_config_data()
+    taxtables = get_tax_data()
+    gross = calculate_gross(sconfig, periods)
 
-    return render_template('test.html', hours=Hours.parseSheet())
+    enddate = dateutil.parser.parse('6/16/19')
+    nannyname = sconfig.nannies[0]
 
-    startdate = dateutil.parser.parse('5/20/19')
-    enddate = dateutil.parser.parse('6/2/19')
-    rate1 = 21
-    rate2 = 25
+    period  = next(p for p in periods if p.endDate() == enddate)
+    sums    = gross[nannyname][enddate]
+    rates   = period.rates(nannyname)
 
-    c1total = 0.0
-    c2total = 0.0
-    btotal = 0.0
-    for d, c1, c2, b in zip(*[d['values'] for d in result]):
-        if not d: continue
-        date   = dateutil.parser.parse(d[0])
-        child1 = c1 and decimal.Decimal(c1[0]) or 0.0
-        child2 = c2 and decimal.Decimal(c2[0]) or 0.0
-        both   = b and decimal.Decimal(b[0]) or 0.0
+    import pprint
+    pprint.pprint(sums)
 
-        if startdate <= date <= enddate:
-            c1total += child1*rate1
-            c2total += child2*rate1
-            btotal  += both*rate2
-
-    return "{} {} {}".format(c1total+(btotal/2), c2total+(btotal/2), (c1total+c2total+btotal))
-
+    return render_template('paystub.html', sums=sums, enddate=enddate, rates=rates, children=sconfig.children)
 
 
 if __name__ == "__main__":

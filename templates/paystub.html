@@ -1,0 +1,118 @@
+<html>
+<head>
+<style>
+table { border-collapse: collapse; }
+td { border: 1px solid gray; }
+</style>
+</head>
+
+<body>
+<table>
+<tr>
+<td>One-Child</td>
+<td>{{rates[0]}}</td>
+<td>{{sums['hours']['Single']}}</td>
+<td>{{sums['sums']['Single']}}</td>
+<td>{{sums['hours']['Single YTD']}}</td>
+<td>{{sums['sums']['Single YTD']}}</td>
+</tr>
+<tr>
+<td>Two-Child</td>
+<td>{{rates[1]}}</td>
+<td>{{sums['hours']['Both']}}</td>
+<td>{{sums['sums']['Both']}}</td>
+<td>{{sums['hours']['Both YTD']}}</td>
+<td>{{sums['sums']['Both YTD']}}</td>
+</tr>
+<tr>
+<td>Overtime One-Child</td>
+<td>{{rates[2]}}</td>
+<td>{{sums['hours']['Single OT']}}</td>
+<td>{{sums['sums']['Single OT']}}</td>
+<td>{{sums['hours']['Single OT YTD']}}</td>
+<td>{{sums['sums']['Single OT YTD']}}</td>
+</tr>
+<tr>
+<td>Overtime Two-Child</td>
+<td>{{rates[3]}}</td>
+<td>{{sums['hours']['Both OT']}}</td>
+<td>{{sums['sums']['Both OT']}}</td>
+<td>{{sums['hours']['Both OT YTD']}}</td>
+<td>{{sums['sums']['Both OT YTD']}}</td>
+</tr>
+<tr>
+<td>Sick</td>
+<td>{{rates[1]}},{{rates[0]}}</td>
+<td>{{sums['hours']['Sick']}}</td>
+<td>{{sums['sums']['Sick']}}</td>
+<td>{{sums['hours']['Sick YTD']}}</td>
+<td>{{sums['sums']['Sick YTD']}}</td>
+</tr>
+<tr>
+<td>Holiday</td>
+<td>{{rates[1]}},{{rates[0]}}</td>
+<td>{{sums['hours']['Holiday']}}</td>
+<td>{{sums['sums']['Holiday']}}</td>
+<td>{{sums['hours']['Holiday YTD']}}</td>
+<td>{{sums['sums']['Holiday YTD']}}</td>
+</tr>
+</table>
+
+
+{% for name in children %}
+{{name}}
+<table>
+<tr>
+<td>One-Child</td>
+<td>{{rates[0]}}</td>
+<td>{{sums['hours'][name]}}</td>
+<td>{{sums['sums'][name]}}</td>
+<td>{{sums['hours'][name+' YTD']}}</td>
+<td>{{sums['sums'][name+' YTD']}}</td>
+</tr>
+<tr>
+<td>Two-Child Half</td>
+<td>{{rates[1]}}</td>
+<td>{{sums['hours']['Both']/2}}</td>
+<td>{{sums['sums']['Both']/2}}</td>
+<td>{{sums['hours']['Both YTD']/2}}</td>
+<td>{{sums['sums']['Both YTD']/2}}</td>
+</tr>
+<tr>
+<td>Overtime One-Child</td>
+<td>{{rates[2]}}</td>
+<td>{{sums['hours'][name + ' OT']}}</td>
+<td>{{sums['sums'][name + ' OT']}}</td>
+<td>{{sums['hours'][name + ' OT YTD']}}</td>
+<td>{{sums['sums'][name + ' OT YTD']}}</td>
+</tr>
+<tr>
+<td>Overtime Two-Child Half</td>
+<td>{{rates[3]}}</td>
+<td>{{sums['hours']['Both OT']/2}}</td>
+<td>{{sums['sums']['Both OT']/2}}</td>
+<td>{{sums['hours']['Both OT YTD']/2}}</td>
+<td>{{sums['sums']['Both OT YTD']/2}}</td>
+</tr>
+<tr>
+<td>Sick</td>
+<td>{{rates[1]}},{{rates[0]}}</td>
+<td>{{sums['hours']['Sick']/2}}</td>
+<td>{{sums['sums']['Sick']/2}}</td>
+<td>{{sums['hours']['Sick YTD']/2}}</td>
+<td>{{sums['sums']['Sick YTD']/2}}</td>
+</tr>
+<tr>
+<td>Holiday</td>
+<td>{{rates[1]}},{{rates[0]}}</td>
+<td>{{sums['hours']['Holiday']/2}}</td>
+<td>{{sums['sums']['Holiday']/2}}</td>
+<td>{{sums['hours']['Holiday YTD']/2}}</td>
+<td>{{sums['sums']['Holiday YTD']/2}}</td>
+</tr>
+</table>
+{% endfor %}
+
+
+</body>
+</html>
