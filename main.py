@@ -3,6 +3,7 @@
 import bisect
 import collections
 import decimal
+from functools import partial
 import json
 import logging
 import os
@@ -150,33 +151,55 @@ def get_nanny_data(name):
     return types.SimpleNamespace(hours = Hours.parseSheet(data['valueRanges'][0]), reimbursements = Reimbursement.parseSheet(data['valueRanges'][1]))
 
 
-def calculate_gross(sconfig, periods):
+SING   = 0
+BOTH   = 1
+SINGOT = 2
+BOTHOT = 3
+
+def sr(index, hours, rates):
+    return hours * rates[index]
+
+def srh(index, hours, rates):
+    return sr(index, hours, rates)/decimal.Decimal(2)
+
+def hr(hours, rates):
+    return (min(hours,8) * rates[BOTH]) + (max(hours-8,0) * rates[SING])
+
+def hrh(hours, rates):
+    return hr(hours, rates)/decimal.Decimal(2)
+
+
+CENTS = decimal.Decimal('0.01')
+def dround(val, idx):
+    if val is None: return "-"
+    return val.quantize(CENTS, rounding= (idx%2)!=0 and decimal.ROUND_DOWN or decimal.ROUND_UP)
+
+
+def calculate_gross(sconfig, periods, taxtables):
 
     ret = dict()
+    calcs = list()
 
-    keymap = dict()
-    ytdmap = dict()
+    #      Input Hours Key,  Rate Function,          Destination Keys
+    calcs.append(('Both',    partial(sr, BOTH),      ['Sum', 'Both']))
+    calcs.append(('Both OT', partial(sr, BOTHOT),    ['Sum', 'Both OT']))
+    calcs.append(('Sick',    hr,                     ['Sum', 'Sick']))
+    calcs.append(('Holiday', hr,                     ['Sum', 'Holiday']))
+
     for child in sconfig.children:
-        keymap[child]          = (('Single',    child), 0)
-        keymap[child + ' OT']  = (('Single OT', child + ' OT'), 2)
-        keymap['Both']         = (('Both',), 1)
-        keymap['Both OT']      = (('Both OT',), 3)
-        keymap['Sick']         = (('Sick',), 1)
-        keymap['Vacation']     = (('Vacation',), 1)
-
-        ytdmap[child]          = (('Single YTD',    child + ' YTD'), 0)
-        ytdmap[child + ' OT']  = (('Single OT YTD', child + ' OT YTD'), 2)
-        ytdmap['Both']         = (('Both YTD',), 1)
-        ytdmap['Both OT']      = (('Both OT YTD',), 3)
-        ytdmap['Sick']         = (('Sick YTD',), 1)
-        ytdmap['Vacation']     = (('Vacation YTD',), 1)
+        calcs.append(   ('Both',        partial(srh, BOTH),   [child + ' Sum', child + ' Both']))
+        calcs.append(   ('Both OT',     partial(srh, BOTHOT), [child + ' Sum', child + ' Both OT']))
+        calcs.append(   ('Sick',        hrh,                  [child + ' Sum', child + ' Sick']))
+        calcs.append(   ('Holiday',     hrh,                  [child + ' Sum', child + ' Holiday']))
+        calcs.append(   (child,         partial(sr, SING),    ['Sum', child + ' Sum', 'Single',    child]))
+        calcs.append(   (child + ' OT', partial(sr, SINGOT),  ['Sum', child + ' Sum', 'Single OT', child + ' OT']))
 
 
     for name in sconfig.nannies:
         ndata = get_nanny_data(name)
         ret[name] = dict()
 
-        for ii, period in enumerate(periods):
+        for period in periods:
             start = period.startDate()
             end   = period.endDate()
             rates = period.rates(name)
@@ -188,19 +211,110 @@ def calculate_gross(sconfig, periods):
             for h in ndata.hours:
                 if h.date > end: break
 
-                for hrkey, (dkeys, rate) in ytdmap.items():
+                # Full YTD calculations
+                for hrkey, ratefunc, dkeys in calcs:
                     for dkey in dkeys:
-                        p[dkey] += h.hours(hrkey)
-                        s[dkey] += h.hours(hrkey) * rates[rate]
+                        p[dkey + ' YTD'] += h.hours(hrkey)
+                        s[dkey + ' YTD'] += ratefunc(h.hours(hrkey), rates)
 
                 if h.date < start: continue
 
-                for hrkey, (dkeys, rate) in keymap.items():
+                # Just current period calculations
+                for hrkey, ratefunc, dkeys in calcs:
                     for dkey in dkeys:
                         p[dkey] += h.hours(hrkey)
-                        s[dkey] += h.hours(hrkey) * rates[rate]
+                        s[dkey] += ratefunc(h.hours(hrkey), rates)
+
+
+        ytd = collections.defaultdict(decimal.Decimal)
+        for period in periods:
+            start = period.startDate()
+            end   = period.endDate()
+            rates = period.rates(name)
+
+            sums = ret[name][end]
+            w4   = period.withholding(name)
+            s    = sums['sums']
+            t    = sums['tax'] = collections.defaultdict(decimal.Decimal)
+
+            if s['Sum']:
+                fed = taxtables.getTax(w4[0], w4[1], w4[2], s['Sum'])
+                for child in sconfig.children:
+                    fedtax   = ((s[child+' Sum'] / s['Sum']) * fed).quantize(CENTS)
+                    medicare = (s[child+' Sum'] * sconfig.medicare).quantize(CENTS)
+                    ss       = (s[child+' Sum'] * sconfig.social_security).quantize(CENTS)
+                    waleave  = (s[child+' Sum'] * sconfig.family_leave).quantize(CENTS)
+                    waunemp  = (s[child+' Sum'] * sconfig.wa_unemployment).quantize(CENTS)
+                    fedunemp = (s[child+' Sum'] * sconfig.fed_unemployment).quantize(CENTS)
+
+                    # rolling count
+                    ytd['Fed']        += fedtax
+                    ytd['SS']         += ss
+                    ytd['Medicare']   += medicare
+                    ytd['WALeave']    += waleave
+                    ytd['WAUnemp']    += waunemp
+                    ytd['FedUnemp']   += fedunemp
+                    ytd[child+' Fed']      += fedtax
+                    ytd[child+' SS']       += ss
+                    ytd[child+' Medicare'] += medicare
+                    ytd[child+' WALeave']  += waleave
+                    ytd[child+' WAUnemp']  += waunemp
+                    ytd[child+' FedUnemp'] += fedunemp
+
+                    # child
+                    t[child+' Fed']      = fedtax
+                    t[child+' Medicare'] = medicare
+                    t[child+' SS']       = ss
+                    t[child+' WALeave']  = waleave
+                    t[child+' WAUnemp']  = waunemp
+                    t[child+' FedUnemp'] = fedunemp
+                    for copy in ('Fed', 'SS', 'Medicare', 'WALeave', 'WAUnemp', 'FedUnemp'):
+                        t['{} {} YTD'.format(child, copy)] = ytd['{} {}'.format(child, copy)]
+
+                    # combined
+                    t['Fed']        += fedtax
+                    t['SS']         += ss
+                    t['Medicare']   += medicare
+                    t['WALeave']    += waleave
+                    t['WAUnemp']    += waunemp
+                    t['FedUnemp']   += fedunemp
+                    for copy in ('Fed', 'SS', 'Medicare', 'WALeave', 'WAUnemp', 'FedUnemp'):
+                        t[copy+' YTD'] = ytd[copy]
+
 
     return ret
+
+
+def calculate_tax(sconfig, periods, taxtables, gross):
+
+    for nanny in gross:
+
+        for period in periods:
+            sums = gross[nanny][period.endDate()]
+            w4 = period.withholding(nanny)
+            t = sums['tax'] = collections.defaultdict(decimal.Decimal)
+            s = sums['sums']
+
+            if sums['sums']['Sum']:
+                fed = taxtables.getTax(w4[0], w4[1], w4[2], s['Sum'])
+                for child in sconfig.children:
+                    fedtax   = ((s[child+' Sum'] / s['Sum']) * fed).quantize(CENTS)
+                    medicare = (s[child+' Sum'] * sconfig.medicare).quantize(CENTS)
+                    ss       = (s[child+' Sum'] * sconfig.social_security).quantize(CENTS)
+
+                    # child
+                    t[child+' Medicare'] = medicare
+                    t[child+' SS']       = ss
+                    t[child+' Fed']      = fedtax
+
+                    # rolling count
+                    ytd['Fed']        += fedtax
+                    ytd[child+' Fed'] += fedtax
+
+                    # combined
+                    t['Fed']            += fedtax
+                    t['Fed YTD']        = ytd['Fed']
+                    t[child+' Fed YTD'] = ytd[child+' Fed']
 
 
 @app.route('/')
@@ -208,7 +322,9 @@ def index():
 
     sconfig, periods = get_config_data()
     taxtables = get_tax_data()
-    gross = calculate_gross(sconfig, periods)
+
+    gross = calculate_gross(sconfig, periods, taxtables)
+#    calculate_tax(sconfig, periods, taxtables, gross)
 
     enddate = dateutil.parser.parse('6/16/19')
     nannyname = sconfig.nannies[0]
@@ -223,10 +339,14 @@ def index():
     return render_template('paystub.html', sums=sums, enddate=enddate, rates=rates, children=sconfig.children)
 
 
+def common_init():
+    app.config.from_envvar('SETTINGS_FILE')
+    app.jinja_env.filters['dround'] = dround
+
 if __name__ == "__main__":
     os.environ['FLASK_ENV'] = 'development'
     os.environ['SETTINGS_FILE'] = 'settings.cfg'
-    app.config.from_envvar('SETTINGS_FILE')
+    common_init()
     app.run()
 else:
-    app.config.from_envvar('SETTINGS_FILE')
+    common_init()
