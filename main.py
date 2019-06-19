@@ -171,29 +171,23 @@ def hrh(hours, rates):
     return hr(hours, rates)/decimal.Decimal(2)
 
 
-CENTS = decimal.Decimal('0.01')
-def dround(val, idx):
-    if val is None: return ""
-    if not val: return "-"
-    return '$'+str(val) #.quantize(CENTS, rounding= (idx%2)!=0 and decimal.ROUND_DOWN or decimal.ROUND_UP))
-
 def dpercent(val):
-    if val is None: return "-"
+    if val is None: return ""
     if type(val) is str: return val
-    return str((val * 100).quantize(CENTS)) + '%'
+    return "{:.2f}%".format(val*100)
 
 def dollar(val):
-    if val is None: return ""
-    if not val: return "-"
+    if not val: return ""
     if type(val) is str: return val
     if isinstance(val, collections.Iterator): return ','.join(map(str,val))
-    return '$'+str(val) #.quantize(CENTS, context=decimal.Context(traps=[decimal.Inexact])))
+    #return "${:,}".format(val)
+    return "${:,.2f}".format(val)
 
-def hround(val):
-    if val is None: return ""
-    if not val: return "-"
-    return val #.quantize(CENTS)
+def nozero(val):
+    if not val: return ""
+    return val
 
+CENTS = decimal.Decimal('0.01')
 
 def calculate(sconfig, periods, taxtables, name, ndata):
 
@@ -351,18 +345,21 @@ def index():
     psums   = results[enddate]
     rates   = period.rates(nannyname)
 
-    import pprint
-    pprint.pprint(psums['sums'])
+    ncalc = [('Combined', '', ''), ('Combined YTD', '', ' YTD')]
+    for child in sconfig.children:
+        ncalc.extend([(child, child+' ', ''), (child+' YTD', child+' ', ' YTD')])
+    nets = dict()
+    for dest, prefix, suffix in ncalc:
+        nets[dest] = (psums['sums'][prefix+'Gross'+suffix] - psums['tax'][prefix+'EmployeeTax'+suffix] + psums['sums'][prefix+'Reimbursements'+suffix])
 
-    return render_template('paystub.html', sums=psums, hours=hours, reimb=reimb, period=period, rates=rates, sconfig=sconfig, nanny=nannyname, children=sconfig.children)
+    return render_template('paystub.html', sums=psums, nets=nets, hours=hours, reimb=reimb, period=period, rates=rates, sconfig=sconfig, nanny=nannyname, children=sconfig.children)
 
 
 def common_init():
     app.config.from_envvar('SETTINGS_FILE')
-    app.jinja_env.filters['hround']   = hround
-    app.jinja_env.filters['dround']   = dround
     app.jinja_env.filters['dpercent'] = dpercent
     app.jinja_env.filters['dollar']   = dollar
+    app.jinja_env.filters['nozero']   = nozero
 
 if __name__ == "__main__":
     os.environ['FLASK_ENV'] = 'development'

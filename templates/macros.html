@@ -1,4 +1,4 @@
-{% macro headerrow(name) %}
+{% macro xheaderrow(name, index=None) %}
 <tr>
 <td>PayPeriod</td>
 <td>Start</td>
@@ -10,14 +10,53 @@
 <tr><td>Employee</td><td colspan=5>{{nanny}}</td></tr>
 <tr><td>Child Care For</td><td colspan=5>{{name}}</td></tr>
 </tr>
-{% endmacro %}
-
-{% macro employerrow(index) %}
-<tr>
+<tr class='employer'>
 <td>Employer</td>
 <td colspan=5>{{sconfig['employer{}'.format(index)]|replace('\n','<br/>')|safe}}</td>
 </tr>
 {% endmacro %}
+
+
+{% macro headerrow(name, index=None) %}
+<tr class='header'><td colspan=6>
+
+<div class='float'>
+<div><span class='header'>PayPeriod</span></div>
+<div><span class='value'>{{period.startDate().date()}}</span></div>
+<div><span class='value'>{{period.endDate().date()}}</span></div>
+</div>
+
+<div class='float'>
+<div><span class='header'>Employee</span></div>
+<div><span class='value'>{{nanny}}</span></div>
+</div>
+
+<div class='float'>
+<div><span class='header'>Childcare For</span></div>
+<div><span class='value'>{{name}}</span></div>
+</div>
+
+<div class='float'>
+{% if index %}
+<div><span class='header'>Employer</span></div>
+<div><span class='value'>{{sconfig['employer{}'.format(index)]|replace('\n','<br/>')|safe}}</span></div>
+{% else %}
+<div><span class='header'>Combined</span></div>
+{% endif %}
+</div>
+</td>
+
+</tr>
+
+<tr class='divider'><td colspan=6></tr>
+<tr class='info'>
+<th colspan=3></th>
+<th>Period</th>
+<th></th>
+<th>YTD</th>
+</tr>
+{% endmacro %}
+
 
 {% macro taxrow(title, rate, prefix, key) -%}
 <tr>
@@ -46,34 +85,34 @@
 <tr class='{{rowclass}}'> 
 <td>{{title}}</td>
 <td>{{rate|dollar}}</td>
-<td>{{sums['hours'][key]|hround}}</td>
+<td>{{sums['hours'][key]|nozero}}</td>
 <td>{{sums['sums'][key]|dollar}}</td>
-<td>{{sums['hours'][key+' YTD']|hround}}</td>
+<td>{{sums['hours'][key+' YTD']|nozero}}</td>
 <td>{{sums['sums'][key+' YTD']|dollar}}</td>
 </tr>
 {% endmacro %}
 
 
-{% macro halfsumrow(title, rate, key, index) -%}
+{% macro halfsumrow(title, rate, key) -%}
 <tr>
 <td>{{title}}</td>
 <td>{{rate|dollar}}</td>
-<td>{{(sums['hours'][key]/2)|hround}}</td>
-<td>{{sums['sums'][key]|dround(index)}}</td>
-<td>{{(sums['hours'][key+' YTD']/2)|hround}}</td>
-<td>{{sums['sums'][key+' YTD']|dround(index)}}</td>
+<td>{{(sums['hours'][key]/2)|nozero}}</td>
+<td>{{sums['sums'][key]|dollar}}</td>
+<td>{{(sums['hours'][key+' YTD']/2)|nozero}}</td>
+<td>{{sums['sums'][key+' YTD']|dollar}}</td>
 </tr>
 {% endmacro %}
 
 
-{% macro netrow(prefix) -%}
+{% macro netrow(key) -%}
 <tr class='netpay'>
 <td>Net Pay</td>
 <td></td>
 <td></td>
-<td>{{(sums['sums'][prefix+'Gross']     - sums['tax'][prefix+'EmployeeTax']     + sums['sums'][prefix+'Reimbursements'])|dollar}}</td>
+<td>{{nets[key]|dollar}}</td>
 <td></td>
-<td>{{(sums['sums'][prefix+'Gross YTD'] - sums['tax'][prefix+'EmployeeTax YTD'] + sums['sums'][prefix+'Reimbursements YTD'])|dollar}}</td>
+<td>{{nets[key+' YTD']|dollar}}</td>
 </tr>
 {% endmacro %}
 
@@ -98,15 +137,15 @@
 <tr>
 <td class='date'>{{h.date.date()}}</td>
 {% for name in children %}
-<td>{{h.data[name]|hround}}</td>
+<td>{{h.data[name]|nozero}}</td>
 {% endfor %}
-<td>{{h.data['Both']|hround}}</td>
+<td>{{h.data['Both']|nozero}}</td>
 {% for name in children %}
-<td>{{h.data[name+' OT']|hround}}</td>
+<td>{{h.data[name+' OT']|nozero}}</td>
 {% endfor %}
-<td>{{h.data['Both OT']|hround}}</td>
-<td>{{h.data['Sick']|hround}}</td>
-<td>{{h.data['Holiday']|hround}}</td>
+<td>{{h.data['Both OT']|nozero}}</td>
+<td>{{h.data['Sick']|nozero}}</td>
+<td>{{h.data['Holiday']|nozero}}</td>
 </tr>
 {% endfor %}
 <table>
@@ -114,6 +153,7 @@
 
 {% macro reimbursementtable() -%}
 <table class='reimbursements'>
+{% if reimb %}
 <tr>
 <th class='date'>Date</th>
 <th>Amount</th>
@@ -122,11 +162,12 @@
 
 {% for r in reimb %}
 <tr>
-<td class='date'>{{r.date.date()}}</td>
-<td>{{r.amount}}</td>
-<td>{{r.notes}}</td>
+<td style='width:15%'>{{r.date.date()}}</td>
+<td style='width:15%'>{{r.amount|dollar}}</td>
+<td style='width:70%'>{{r.notes}}</td>
 </tr>
 {% endfor %}
+{% endif %}
 <table>
 {% endmacro %}
 
@@ -140,14 +181,14 @@
 {{sumrow('Overtime Two-Child', rates[3], 'Both OT')}}
 {{sumrow('Sick', rates[0:2]|reverse, 'Sick')}}
 {{sumrow('Holiday', rates[0:2]|reverse, 'Holiday')}}
-{{sumrow('Sum', '', 'Gross', 'summation')}}
+{{sumrow('', '', 'Gross', 'summation')}}
 {{taxrow('Federal Witholding',        '',                        '', 'Fed')}}
 {{taxrow('Medicare',                  sconfig.medicare/2,        '', 'Medicare1')}}
 {{taxrow('Social Security',           sconfig.social_security/2, '', 'SS1')}}
 {{taxrow('WA Medical & Family Leave', sconfig.family_leave,      '', 'WALeave')}}
 {{taxsum('Employee Taxes', 'EmployeeTax', 'summation')}}
 {{sumrow('Reimbursements', '', 'Reimbursements')}}
-{{netrow('')}}
+{{netrow('Combined')}}
 {{taxrow('Federal Unemployment', sconfig.fed_unemployment,  '', 'FedUnemp')}}
 {{taxrow('Medicare',             sconfig.medicare/2,        '', 'Medicare2')}}
 {{taxrow('Social Security',      sconfig.social_security/2, '', 'SS2')}}
@@ -160,22 +201,21 @@
 
 {% macro singletable(name, index) -%}
 <table class='paystub'>
-{{headerrow(name)}}
-{{employerrow(index)}}
+{{headerrow(name, index)}}
 {{sumrow(    'One-Child',               rates[0],           name)}}
-{{halfsumrow('Two-Child Half',          rates[1],           name+' Both',    index)}}
+{{halfsumrow('Two-Child Half',          rates[1],           name+' Both')}}
 {{sumrow(    'Overtime One-Child',      rates[2],           name+' OT')}}
-{{halfsumrow('Overtime Two-Child Half', rates[3],           name+' Both OT', index)}}
-{{halfsumrow('Sick Half',               rates[0:2]|reverse, name+' Sick',    index)}}
-{{halfsumrow('Holiday Half',            rates[0:2]|reverse, name+' Holiday', index)}}
-{{sumrow(    'Sum',                     '',                 name+' Gross', 'summation')}}
+{{halfsumrow('Overtime Two-Child Half', rates[3],           name+' Both OT')}}
+{{halfsumrow('Sick Half',               rates[0:2]|reverse, name+' Sick')}}
+{{halfsumrow('Holiday Half',            rates[0:2]|reverse, name+' Holiday')}}
+{{sumrow(    '',                        '',                 name+' Gross', 'summation')}}
 {{taxrow('Federal Witholding',        '',                        name+' ', 'Fed')}}
 {{taxrow('Medicare',                  sconfig.medicare/2,        name+' ', 'Medicare1')}}
 {{taxrow('Social Security',           sconfig.social_security/2, name+' ', 'SS1')}}
 {{taxrow('WA Medical & Family Leave', sconfig.family_leave,      name+' ', 'WALeave')}}
 {{taxsum('Employee Taxes',                                       name+' EmployeeTax', 'summation')}}
 {{sumrow('Reimbursements', '', name+' Reimbursements')}}
-{{netrow(name+' ')}}
+{{netrow(name)}}
 {{taxrow('Federal Unemployment', sconfig.fed_unemployment,  name+' ', 'FedUnemp')}}
 {{taxrow('Medicare',             sconfig.medicare/2,        name+' ', 'Medicare2')}}
 {{taxrow('Social Security',      sconfig.social_security/2, name+' ', 'SS2')}}
