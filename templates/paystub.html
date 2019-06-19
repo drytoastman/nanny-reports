@@ -1,154 +1,74 @@
-{% macro taxrow(title, prefix, key) -%}
-<tr>
-<td>{{title}}</td>
-<td></td>
-<td></td>
-<td>{{sums['tax'][prefix + key]}}</td>
-<td></td>
-<td>{{sums['tax'][prefix + key + ' YTD']}}</td>
-</tr>
-{% endmacro %}
-
 <html>
 <head>
 <style>
-table { border-collapse: collapse; }
-td { border: 1px solid gray; }
+table { 
+    border-collapse: collapse; 
+    border: 1px solid black;
+}
+
+th {
+    xborder: 1px solid #ccc;
+    padding: 2px 8px;
+}
+td {
+    xborder: 1px solid #ccc;
+    padding: 2px 8px;
+    text-align: right;
+}
+
+.paystub td:first-child {
+    font-weight: bold;
+}
+
+.summation {
+    font-size: 110%;
+    border-top: 1px solid gray;
+}
+
+.netpay{
+    font-size: 120%;
+    font-weight: bold;
+    border-top: 1px solid gray;
+}
+
+.summation td, .netpay td {
+    padding-bottom: 1rem;
+}
+
+table.hours td, table.hours th {
+    width: 3rem;
+}
+
+table.hours th {
+    font-size: 80%;
+}
+table.hours td {
+    font-size: 90%;
+}
+
+table.hours td.date {
+    width: 5rem;
+    font-size: 100%;
+}
+
+table.hours th.date {
+    width: 5rem;
+}
+
 </style>
 </head>
 
-<body>
-<table>
-<tr>
-<td>One-Child</td>
-<td>{{rates[0]}}</td>
-<td>{{sums['hours']['Single']}}</td>
-<td>{{sums['sums']['Single']}}</td>
-<td>{{sums['hours']['Single YTD']}}</td>
-<td>{{sums['sums']['Single YTD']}}</td>
-</tr>
-<tr>
-<td>Two-Child</td>
-<td>{{rates[1]}}</td>
-<td>{{sums['hours']['Both']}}</td>
-<td>{{sums['sums']['Both']}}</td>
-<td>{{sums['hours']['Both YTD']}}</td>
-<td>{{sums['sums']['Both YTD']}}</td>
-</tr>
-<tr>
-<td>Overtime One-Child</td>
-<td>{{rates[2]}}</td>
-<td>{{sums['hours']['Single OT']}}</td>
-<td>{{sums['sums']['Single OT']}}</td>
-<td>{{sums['hours']['Single OT YTD']}}</td>
-<td>{{sums['sums']['Single OT YTD']}}</td>
-</tr>
-<tr>
-<td>Overtime Two-Child</td>
-<td>{{rates[3]}}</td>
-<td>{{sums['hours']['Both OT']}}</td>
-<td>{{sums['sums']['Both OT']}}</td>
-<td>{{sums['hours']['Both OT YTD']}}</td>
-<td>{{sums['sums']['Both OT YTD']}}</td>
-</tr>
-<tr>
-<td>Sick</td>
-<td>{{rates[1]}},{{rates[0]}}</td>
-<td>{{sums['hours']['Sick']}}</td>
-<td>{{sums['sums']['Sick']}}</td>
-<td>{{sums['hours']['Sick YTD']}}</td>
-<td>{{sums['sums']['Sick YTD']}}</td>
-</tr>
-<tr>
-<td>Holiday</td>
-<td>{{rates[1]}},{{rates[0]}}</td>
-<td>{{sums['hours']['Holiday']}}</td>
-<td>{{sums['sums']['Holiday']}}</td>
-<td>{{sums['hours']['Holiday YTD']}}</td>
-<td>{{sums['sums']['Holiday YTD']}}</td>
-</tr>
-<tr>
-<td>Sum</td>
-<td></td>
-<td></td>
-<td>{{sums['sums']['Sum']}}</td>
-<td></td>
-<td>{{sums['sums']['Sum YTD']}}</td>
-{{taxrow('Federal Witholding', '', 'Fed')}}
-{{taxrow('Social Security', '', 'SS')}}
-{{taxrow('Medicare', '', 'Medicare')}}
-{{taxrow('WA Medical & Family Leave', '', 'WALeave')}}
-{{taxrow('Federal Unemployment', '', 'FedUnemp')}}
-{{taxrow('WA Unemployment', '', 'WAUnemp')}}
-</table>
+{% import "macros.html" as m with context %}
 
+<body>
+{{ m.combinedtable() }}
+<hr/>
+{{ m.hourstable() }}
+{{ m.reimbursementtable() }}
 
 {% for name in children %}
-<b>{{loop.index}} {{name}}</b>
-<table>
-<tr>
-<td>One-Child</td>
-<td>{{rates[0]}}</td>
-<td>{{sums['hours'][name]}}</td>
-<td>{{ sums['sums'][name]}}</td>
-<td>{{sums['hours'][name+' YTD']}}</td>
-<td>{{ sums['sums'][name+' YTD']}}</td>
-</tr>
-<tr>
-<td>Two-Child Half</td>
-<td>{{rates[1]}}</td>
-<td>{{sums['hours'][name + ' Both']/2}}</td>
-<td>{{ sums['sums'][name + ' Both']|dround(loop.index)}}</td>
-<td>{{sums['hours'][name + ' Both YTD']/2}}</td>
-<td>{{ sums['sums'][name + ' BothYTD']|dround(loop.index)}}</td>
-</tr>
-<tr>
-<td>Overtime One-Child</td>
-<td>{{rates[2]}}</td>
-<td>{{sums['hours'][name + ' OT']}}</td>
-<td>{{ sums['sums'][name + ' OT']}}</td>
-<td>{{sums['hours'][name + ' OT YTD']}}</td>
-<td>{{ sums['sums'][name + ' OT YTD']}}</td>
-</tr>
-<tr>
-<td>Overtime Two-Child Half</td>
-<td>{{rates[3]}}</td>
-<td>{{sums['hours'][name + ' Both OT']/2}}</td>
-<td>{{ sums['sums'][name + ' Both OT']|dround(loop.index)}}</td>
-<td>{{sums['hours'][name + ' Both OT YTD']/2}}</td>
-<td>{{ sums['sums'][name + ' Both OT YTD']|dround(loop.index)}}</td>
-</tr>
-<tr>
-<td>Sick Half</td>
-<td>{{rates[1]}},{{rates[0]}}</td>
-<td>{{sums['hours'][name + ' Sick']/2}}</td>
-<td>{{ sums['sums'][name + ' Sick']|dround(loop.index)}}</td>
-<td>{{sums['hours'][name + ' Sick YTD']/2}}</td>
-<td>{{ sums['sums'][name + ' Sick YTD']|dround(loop.index)}}</td>
-</tr>
-<tr>
-<td>Holiday Half</td>
-<td>{{rates[1]}},{{rates[0]}}</td>
-<td>{{sums['hours'][name + ' Holiday']/2}}</td>
-<td>{{ sums['sums'][name + ' Holiday']|dround(loop.index)}}</td>
-<td>{{sums['hours'][name + ' Holiday YTD']/2}}</td>
-<td>{{ sums['sums'][name + ' Holiday YTD']|dround(loop.index)}}</td>
-</tr>
-<tr>
-<td>Sum</td>
-<td></td>
-<td></td>
-<td>{{sums['sums'][name + ' Sum']}}</td>
-<td></td>
-<td>{{sums['sums'][name + ' Sum YTD']}}</td>
-</tr>
-{{taxrow('Federal Witholding', name+' ', 'Fed')}}
-{{taxrow('Social Security', name+' ', 'SS')}}
-{{taxrow('Medicare', name+' ', 'Medicare')}}
-{{taxrow('WA Medical & Family Leave', name+' ', 'WALeave')}}
-{{taxrow('Federal Unemployment', name+' ', 'FedUnemp')}}
-{{taxrow('WA Unemployment', name+' ', 'WAUnemp')}}
-</table>
+<hr/>
+{{ m.singletable(name, loop.index) }}
 {% endfor %}
 
 </body>
