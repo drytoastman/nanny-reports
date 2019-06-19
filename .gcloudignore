@@ -1,5 +1,8 @@
 .gcloudignore
 .git
 .gitignore
+*.json
+!creds.json
+LICENSE
 venv
 __pycache__

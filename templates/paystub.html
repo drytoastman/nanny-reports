@@ -10,7 +10,6 @@ table {
     border-collapse: collapse; 
     border: 1px solid black;
     font-size: 14;
-    width: 100%;
 }
 
 th, td {
@@ -21,18 +20,26 @@ td {
     text-align: right;
 }
 
-.summation {
-    font-size: 16;
+tr.summation {
+    font-size: 15;
     border-top: 1px solid #ccc;
 }
 
-.netpay {
+tr.netpay {
     font-size: 18;
     font-weight: bold;
     border-top: 1px solid #ccc;
 }
 
-.summation td, .netpay td {
+tr.small {
+    font-size: 12;
+}
+
+tr.small.summation {
+    font-size: 13;
+}
+
+tr.summation td, tr.netpay td {
     padding-bottom: 1rem;
 }
 

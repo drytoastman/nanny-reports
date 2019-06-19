@@ -47,8 +47,10 @@
 </td>
 
 </tr>
-
 <tr class='divider'><td colspan=6></tr>
+{% endmacro %}
+
+{% macro periodytd() -%}
 <tr class='info'>
 <th colspan=3></th>
 <th>Period</th>
@@ -58,8 +60,8 @@
 {% endmacro %}
 
 
-{% macro taxrow(title, rate, prefix, key) -%}
-<tr>
+{% macro taxrow(title, rate, prefix, key, rowclass="") -%}
+<tr class='{{rowclass}}'>
 <td>{{title}}</td>
 <td>{{rate|dpercent}}</td>
 <td></td>
@@ -163,7 +165,7 @@
 {% for r in reimb %}
 <tr>
 <td style='width:15%'>{{r.date.date()}}</td>
-<td style='width:15%'>{{r.amount|dollar}}</td>
+<td style='width:15%'>{{r.amount|dollar(True)}}</td>
 <td style='width:70%'>{{r.notes}}</td>
 </tr>
 {% endfor %}
@@ -175,13 +177,15 @@
 {% macro singletable(name, index) -%}
 <table class='paystub'>
 {{headerrow(name, index)}}
+{{periodytd()}}
 {{sumrow(    'One-Child',               rates[0],           name)}}
 {{halfsumrow('Two-Child Half',          rates[1],           name+' Both')}}
 {{sumrow(    'Overtime One-Child',      rates[2],           name+' OT')}}
 {{halfsumrow('Overtime Two-Child Half', rates[3],           name+' Both OT')}}
 {{halfsumrow('Sick Half',               rates[0:2]|reverse, name+' Sick')}}
 {{halfsumrow('Holiday Half',            rates[0:2]|reverse, name+' Holiday')}}
-{{sumrow(    '',                        '',                 name+' Gross', 'summation')}}
+{{sumrow('Gross',                     '',                 name+' Gross', 'summation')}}
+{{periodytd()}}
 {{taxrow('Federal Witholding',        '',                        name+' ', 'Fed')}}
 {{taxrow('Medicare',                  sconfig.medicare/2,        name+' ', 'Medicare1')}}
 {{taxrow('Social Security',           sconfig.social_security/2, name+' ', 'SS1')}}
@@ -189,10 +193,11 @@
 {{taxsum('Employee Taxes',                                       name+' EmployeeTax', 'summation')}}
 {{sumrow('Reimbursements Half', '', name+' Reimbursements')}}
 {{netrow(name)}}
-{{taxrow('Federal Unemployment', sconfig.fed_unemployment,  name+' ', 'FedUnemp')}}
-{{taxrow('Medicare',             sconfig.medicare/2,        name+' ', 'Medicare2')}}
-{{taxrow('Social Security',      sconfig.social_security/2, name+' ', 'SS2')}}
-{{taxrow('WA Unemployment',      sconfig.wa_unemployment,   name+' ', 'WAUnemp')}}
-{{taxsum('Employer Taxes',                                  name+' EmployerTax', 'summation')}}
+{{periodytd()}}
+{{taxrow('Federal Unemployment', sconfig.fed_unemployment,  name+' ', 'FedUnemp', 'small')}}
+{{taxrow('Medicare',             sconfig.medicare/2,        name+' ', 'Medicare2', 'small')}}
+{{taxrow('Social Security',      sconfig.social_security/2, name+' ', 'SS2', 'small')}}
+{{taxrow('WA Unemployment',      sconfig.wa_unemployment,   name+' ', 'WAUnemp', 'small')}}
+{{taxsum('Employer Taxes',                                  name+' EmployerTax', 'small summation')}}
 </table>
 {% endmacro %}

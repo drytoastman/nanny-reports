@@ -176,12 +176,13 @@ def dpercent(val):
     if type(val) is str: return val
     return "{:.2f}%".format(val*100)
 
-def dollar(val):
+def dollar(val, twoplaces=False):
     if not val: return ""
     if type(val) is str: return val
     if isinstance(val, collections.Iterator): return ','.join(map(str,val))
-    #return "${:,}".format(val)
-    return "${:,.2f}".format(val)
+    if twoplaces:
+        return "${:,.2f}".format(val)
+    return "${:,}".format(val)
 
 def nozero(val):
     if not val: return ""
@@ -261,8 +262,8 @@ def calculate(sconfig, periods, taxtables, name, ndata):
             childgross = s[child+' Gross']
             fedtax = 0
             if totalgross: fedtax = ((childgross / totalgross) * fed).quantize(CENTS)
-            medicare = ((childgross * sconfig.medicare).quantize(CENTS)/2).quantize(CENTS)
-            ss       = ((childgross * sconfig.social_security).quantize(CENTS)/2).quantize(CENTS)
+            medicare = ((childgross * sconfig.medicare)/2).quantize(CENTS)
+            ss       = ((childgross * sconfig.social_security)/2).quantize(CENTS)
             waleave  =  (childgross * sconfig.family_leave).quantize(CENTS)
             waunemp  =  (childgross * sconfig.wa_unemployment).quantize(CENTS)
             fedunemp =  (childgross * sconfig.fed_unemployment).quantize(CENTS)
@@ -316,12 +317,11 @@ def index():
     psums   = results[enddate]
     rates   = period.rates(nannyname)
 
-    ncalc = [('Combined', '', ''), ('Combined YTD', '', ' YTD')]
-    for child in sconfig.children:
-        ncalc.extend([(child, child+' ', ''), (child+' YTD', child+' ', ' YTD')])
     nets = dict()
-    for dest, prefix, suffix in ncalc:
-        nets[dest] = (psums['sums'][prefix+'Gross'+suffix] - psums['tax'][prefix+'EmployeeTax'+suffix] + psums['sums'][prefix+'Reimbursements'+suffix])
+    for child in sconfig.children:
+        ncalc = [(child, child+' ', ''), (child+' YTD', child+' ', ' YTD')]
+        for dest, prefix, suffix in ncalc:
+            nets[dest] = (psums['sums'][prefix+'Gross'+suffix] - psums['tax'][prefix+'EmployeeTax'+suffix] + psums['sums'][prefix+'Reimbursements'+suffix]).quantize(CENTS, rounding=decimal.ROUND_UP)
 
     return render_template('paystub.html', sums=psums, nets=nets, hours=hours, reimb=reimb, period=period, rates=rates, sconfig=sconfig, nanny=nannyname, children=sconfig.children)
 
