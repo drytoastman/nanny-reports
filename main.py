@@ -194,19 +194,14 @@ def calculate(sconfig, periods, taxtables, name, ndata):
     ret = dict()
     calcs = list()
 
-    #      Input Hours Key,  Rate Function,          Destination Keys
-    calcs.append(('Both',    partial(sr, BOTH),      ['Gross', 'Both']))
-    calcs.append(('Both OT', partial(sr, BOTHOT),    ['Gross', 'Both OT']))
-    calcs.append(('Sick',    hr,                     ['Gross', 'Sick']))
-    calcs.append(('Holiday', hr,                     ['Gross', 'Holiday']))
-
     for child in sconfig.children:
+        #             Input Hours Key,  Rate Function,        Destination Keys
         calcs.append(   ('Both',        partial(srh, BOTH),   [child + ' Gross', child + ' Both']))
         calcs.append(   ('Both OT',     partial(srh, BOTHOT), [child + ' Gross', child + ' Both OT']))
         calcs.append(   ('Sick',        hrh,                  [child + ' Gross', child + ' Sick']))
         calcs.append(   ('Holiday',     hrh,                  [child + ' Gross', child + ' Holiday']))
-        calcs.append(   (child,         partial(sr, SING),    ['Gross', child + ' Gross', 'Single',    child]))
-        calcs.append(   (child + ' OT', partial(sr, SINGOT),  ['Gross', child + ' Gross', 'Single OT', child + ' OT']))
+        calcs.append(   (child,         partial(sr, SING),    [child + ' Gross', child]))
+        calcs.append(   (child + ' OT', partial(sr, SINGOT),  [child + ' Gross', child + ' OT']))
 
 
     for period in periods:
@@ -238,12 +233,10 @@ def calculate(sconfig, periods, taxtables, name, ndata):
         for r in ndata.reimbursements:
             if r.date > end: break
             # Full YTD calculations
-            s['Reimbursements YTD'] += r.amount
             for child in sconfig.children:
                 s[child+' Reimbursements YTD'] += r.amount/2
 
             if r.date < start: continue
-            s['Reimbursements'] += r.amount
             for child in sconfig.children:
                 s[child+' Reimbursements'] += r.amount/2
 
@@ -259,33 +252,25 @@ def calculate(sconfig, periods, taxtables, name, ndata):
         s    = sums['sums']
         t    = sums['tax'] = collections.defaultdict(decimal.Decimal)
 
-        gross = s['Gross']
-        fed   = taxtables.getTax(w4[0], w4[1], w4[2], gross)  # fed is calculated as 1 and then divided between employers
+        totalgross = decimal.Decimal(0)
+        for child in sconfig.children:
+            totalgross += s[child+' Gross']
+        fed = taxtables.getTax(w4[0], w4[1], w4[2], totalgross)  # fed is calculated as 1 and then divided between employers
+
         for child in sconfig.children:
             childgross = s[child+' Gross']
             fedtax = 0
-            if gross:
-                fedtax = ((childgross / gross) * fed).quantize(CENTS)
-            medicare  = ((childgross * sconfig.medicare).quantize(CENTS)/2).quantize(CENTS)
-            ss        = ((childgross * sconfig.social_security).quantize(CENTS)/2).quantize(CENTS)
-            waleave   = (childgross * sconfig.family_leave).quantize(CENTS)
-            waunemp   = (childgross * sconfig.wa_unemployment).quantize(CENTS)
-            fedunemp  = (childgross * sconfig.fed_unemployment).quantize(CENTS)
+            if totalgross: fedtax = ((childgross / totalgross) * fed).quantize(CENTS)
+            medicare = ((childgross * sconfig.medicare).quantize(CENTS)/2).quantize(CENTS)
+            ss       = ((childgross * sconfig.social_security).quantize(CENTS)/2).quantize(CENTS)
+            waleave  =  (childgross * sconfig.family_leave).quantize(CENTS)
+            waunemp  =  (childgross * sconfig.wa_unemployment).quantize(CENTS)
+            fedunemp =  (childgross * sconfig.fed_unemployment).quantize(CENTS)
 
             employee = fedtax   + ss + medicare + waleave 
             employer = fedunemp + ss + medicare + waunemp
 
             # rolling count
-            ytd['Fed']        += fedtax
-            ytd['SS1']        += ss
-            ytd['SS2']        += ss
-            ytd['Medicare1']  += medicare
-            ytd['Medicare2']  += medicare
-            ytd['WALeave']    += waleave
-            ytd['WAUnemp']    += waunemp
-            ytd['FedUnemp']   += fedunemp
-            ytd['EmployeeTax'] += employee
-            ytd['EmployerTax'] += employer
             ytd[child+' Fed']       += fedtax
             ytd[child+' SS1']       += ss
             ytd[child+' SS2']       += ss
@@ -310,20 +295,6 @@ def calculate(sconfig, periods, taxtables, name, ndata):
             t[child+' EmployerTax'] = employer
             for copy in ('Fed', 'SS1', 'SS2', 'Medicare1', 'Medicare2', 'WALeave', 'WAUnemp', 'FedUnemp', 'EmployeeTax', 'EmployerTax'):
                 t['{} {} YTD'.format(child, copy)] = ytd['{} {}'.format(child, copy)]
-
-            # combined
-            t['Fed']        += fedtax
-            t['SS1']        += ss
-            t['SS2']        += ss
-            t['Medicare1']  += medicare
-            t['Medicare2']  += medicare
-            t['WALeave']    += waleave
-            t['WAUnemp']    += waunemp
-            t['FedUnemp']   += fedunemp
-            t['EmployeeTax'] += employee
-            t['EmployerTax'] += employer
-            for copy in ('Fed', 'SS1', 'SS2', 'Medicare1', 'Medicare2', 'WALeave', 'WAUnemp', 'FedUnemp', 'EmployeeTax', 'EmployerTax'):
-                t[copy+' YTD'] = ytd[copy]
 
     return ret
 

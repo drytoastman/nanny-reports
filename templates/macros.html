@@ -172,33 +172,6 @@
 {% endmacro %}
 
 
-{% macro combinedtable() -%}
-<table class='paystub'>
-{{headerrow(sconfig.children|join(', '))}}
-{{sumrow('One-Child', rates[0], 'Single')}}
-{{sumrow('Two-Child', rates[1], 'Both')}}
-{{sumrow('Overtime One-Child', rates[2], 'Single OT')}}
-{{sumrow('Overtime Two-Child', rates[3], 'Both OT')}}
-{{sumrow('Sick', rates[0:2]|reverse, 'Sick')}}
-{{sumrow('Holiday', rates[0:2]|reverse, 'Holiday')}}
-{{sumrow('', '', 'Gross', 'summation')}}
-{{taxrow('Federal Witholding',        '',                        '', 'Fed')}}
-{{taxrow('Medicare',                  sconfig.medicare/2,        '', 'Medicare1')}}
-{{taxrow('Social Security',           sconfig.social_security/2, '', 'SS1')}}
-{{taxrow('WA Medical & Family Leave', sconfig.family_leave,      '', 'WALeave')}}
-{{taxsum('Employee Taxes', 'EmployeeTax', 'summation')}}
-{{sumrow('Reimbursements', '', 'Reimbursements')}}
-{{netrow('Combined')}}
-{{taxrow('Federal Unemployment', sconfig.fed_unemployment,  '', 'FedUnemp')}}
-{{taxrow('Medicare',             sconfig.medicare/2,        '', 'Medicare2')}}
-{{taxrow('Social Security',      sconfig.social_security/2, '', 'SS2')}}
-{{taxrow('WA Unemployment',      sconfig.wa_unemployment,   '', 'WAUnemp')}}
-{{taxsum('Employer Taxes', 'EmployerTax', 'summation')}}
-</table>
-{% endmacro %}
-
-
-
 {% macro singletable(name, index) -%}
 <table class='paystub'>
 {{headerrow(name, index)}}
@@ -214,7 +187,7 @@
 {{taxrow('Social Security',           sconfig.social_security/2, name+' ', 'SS1')}}
 {{taxrow('WA Medical & Family Leave', sconfig.family_leave,      name+' ', 'WALeave')}}
 {{taxsum('Employee Taxes',                                       name+' EmployeeTax', 'summation')}}
-{{sumrow('Reimbursements', '', name+' Reimbursements')}}
+{{sumrow('Reimbursements Half', '', name+' Reimbursements')}}
 {{netrow(name)}}
 {{taxrow('Federal Unemployment', sconfig.fed_unemployment,  name+' ', 'FedUnemp')}}
 {{taxrow('Medicare',             sconfig.medicare/2,        name+' ', 'Medicare2')}}
