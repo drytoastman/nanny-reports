@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+body {
+    font-family: sans-serif;
+}
+div.w2 div.child { 
+    padding: 1rem; 
+    margin: 1rem;
+    display: inline-block; 
+    border:  1px solid #ddd; 
+}
+div.scheduleh div.child { 
+    margin: 1rem;
+    padding: 1rem; 
+    display: inline-block; 
+    border:  1px solid #ccc; 
+}
+div.w2 div.nanny { 
+    border:  1px solid #ccc; 
+    margin:  1rem; 
+    padding: 1rem; 
+    display: inline-block; 
+}
+td, th {
+    text-align: right;
+    padding-left: 1rem;
+}
+tr.net {
+    font-weight: bold;
+    font-size: 120%;
+}
+h3 {
+    border-bottom: 1px solid #ccc;
+}
+h4 {
+    margin: 0
+}
+</style>
+</head>
+
+<body>
+{% import "macros.html" as m with context %}
+
+<div class='w2'>
+<h3>W2</h3>
+
+{% for child in sconfig.children %}
+<div class='child'>
+<h4>{{child}}</h4>
+{% for nanny in sconfig.nannies %}
+<div class='nanny'>
+<h4>{{nanny}}</h4>
+{{m.w2(nanny, data[child][nanny])}}
+</div>
+{% endfor %}
+</div>
+{% endfor %}
+</div>
+
+<div class='scheduleh'>
+<h3>Schedule H</h3>
+
+{% for child in sconfig.children %}
+<div class='child'>
+<h4>{{child}}</h4>
+{{m.scheduleH(data[child]['scheduleH'])}}
+</div>
+{% endfor %}
+</div>
+
+</body>
+</html>

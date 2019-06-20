@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+
+body {
+    font-family: sans-serif;
+}
+
+td,th {
+    padding: 0 0 0.2rem 0;
+    width: 8rem;
+    text-align: left;
+    font-weight: normal;
+}
+
+div.container {
+    display: inline-block;
+    margin: 1rem;
+    padding: 1rem;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    vertical-align: top;
+}
+
+div.container div {
+    margin: 0.5rem 0rem 0rem 0rem; 
+}
+
+h3 {
+    margin-top: 0rem;
+    margin-bottom: 1rem;
+}
+</style>
+</head>
+
+<body>
+
+<div class='container'>
+<h3>Paystubs (Period Ending)</h3>
+<table>
+<tr>
+{% for nanny in sconfig.nannies %}
+<th>{{nanny}}</th>
+{% endfor %}
+</tr>
+
+{% for period in periods %}
+<tr>
+{% for nanny in sconfig.nannies %}
+<td><a href='{{url_for('.paystub', nannyname=nanny, enddate=period.endDate().strftime('%Y_%m_%d'))}}'>{{period.endDate().date()}}</a></td>
+{% endfor %}
+</tr>
+{% endfor %}
+</table>
+</div>
+
+<div class='container'>
+<h3>Tax Reports</h3>
+<div><a href='{{url_for('.fed')}}'>Federal</a></div>
+<div><a href='{{url_for('.wa')}}'>Washington</a></div>
+</div>
+
+</body>
+</html>
