@@ -42,10 +42,11 @@ def nanny_calculate(sconfig, periods, taxtables, nanny, ndata):
         p = ret[end]['hours'] = collections.defaultdict(decimal.Decimal)
         s = ret[end]['sums'] = collections.defaultdict(decimal.Decimal)
 
-        s['SickAccum'] = sconfig.sickinit(nanny)
+        s['SickAccum'] = 0
 
         for h in ndata.hours:
             if h.date > end: break  # don't go past this period
+            s['SickAccum'] += h.hours('Sick Adjust')
 
             for hrkey, ratefunc, dkeys in calcs:
                 hrs, gross = ratefunc(h.hours(hrkey), rates)

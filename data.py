@@ -15,7 +15,7 @@ credentials = service_account.Credentials.from_service_account_file(secretfile, 
 
 class Config():
     def __init__(self, sheet):
-        self.lists = dict(nanny=dict(), child=dict(), employer=dict(), sick=dict())
+        self.lists = dict(nanny=dict(), child=dict(), employer=dict(), sickaccum=dict())
 
         for r in sheet['values']:
             if r[0][-1].isdigit():
@@ -27,14 +27,12 @@ class Config():
                     self.lists['child'][num] = r[1]
                 elif name == 'Employer':
                     self.lists['employer'][num] = r[1]
-                elif name == 'Sick':
-                    self.lists['sick'][num] = list(map(decimal.Decimal, r[1].split(',')))
+                elif name == 'SickAccum':
+                    self.lists['sickaccum'][num] = decimal.Decimal(r[1])
             else:
                 name = r[0].replace(' ', '_').lower()
                 val = decimal.Decimal(r[1])
                 setattr(self, name, val)
-
-        print(self.lists['sick'])
 
     @property
     def nannies(self):
@@ -53,11 +51,8 @@ class Config():
     def ssn(self, nanny):
         return self.lists['nanny'][self.nannyidx(nanny)][1]
 
-    def sickinit(self, nanny):
-        return self.lists['sick'][self.nannyidx(nanny)][0]
-
     def sickaccum(self, nanny, hours):
-        hoursper = self.lists['sick'][self.nannyidx(nanny)][1]
+        hoursper = self.lists['sickaccum'][self.nannyidx(nanny)]
         if hoursper:  return hours/hoursper
         return 0
 
