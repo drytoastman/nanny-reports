@@ -108,7 +108,7 @@ class Hours():
 
     @classmethod
     def parseSheet(cls, sheet):
-        return [ cls(sheet['values'][0], r) for r in sheet['values'][1:] ]
+        return [ cls(sheet['values'][1], r) for r in sheet['values'][2:] ]
 
 
 class Reimbursement():
@@ -121,7 +121,7 @@ class Reimbursement():
 
     @classmethod
     def parseSheet(cls, sheet):
-        return [ cls(sheet['values'][0], r) for r in sheet['values'][1:] ]
+        return [ cls(sheet['values'][1], r) for r in sheet['values'][2:] ]
 
 
 def get_api():

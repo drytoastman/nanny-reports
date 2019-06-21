@@ -7,20 +7,15 @@ BOTH   = 1
 SINGOT = 2
 BOTHOT = 3
 
-CENTS = decimal.Decimal('0.01')
-INTEG = decimal.Decimal('0')
+CENTS   = decimal.Decimal('0.01')
+THRENTS = decimal.Decimal('0.001')
+INTEG   = decimal.Decimal('0')
 
 def sr(index, hours, rates):
-    return hours * rates[index]
+    return hours, (hours * rates[index]).quantize(CENTS)
 
 def srh(index, hours, rates):
-    return (sr(index, hours, rates)/decimal.Decimal(2)).quantize(CENTS)
-
-def hr(hours, rates):
-    return (min(hours,8) * rates[BOTH]) + (max(hours-8,0) * rates[SING])
-
-def hrh(hours, rates):
-    return (hr(hours, rates)/decimal.Decimal(2)).quantize(CENTS)
+    return sr(index, hours/2, rates)
 
 def nanny_calculate(sconfig, periods, taxtables, name, ndata):
 
@@ -31,10 +26,11 @@ def nanny_calculate(sconfig, periods, taxtables, name, ndata):
         #             Input Hours Key,  Rate Function,        Destination Keys
         calcs.append(   ('Both',        partial(srh, BOTH),   [child + ' Gross', child + ' Both']))
         calcs.append(   ('Both OT',     partial(srh, BOTHOT), [child + ' Gross', child + ' Both OT']))
-        calcs.append(   ('Sick',        hrh,                  [child + ' Gross', child + ' Sick']))
-        calcs.append(   ('Holiday',     hrh,                  [child + ' Gross', child + ' Holiday']))
+        calcs.append(   ('Sick',        partial(srh, BOTH),   [child + ' Gross', child + ' Sick']))
+        calcs.append(   ('Holiday',     partial(srh, BOTH),   [child + ' Gross', child + ' Holiday']))
         calcs.append(   (child,         partial(sr, SING),    [child + ' Gross', child]))
         calcs.append(   (child + ' OT', partial(sr, SINGOT),  [child + ' Gross', child + ' OT']))
+
 
 
     for period in periods:
@@ -46,22 +42,28 @@ def nanny_calculate(sconfig, periods, taxtables, name, ndata):
         p = ret[end]['hours'] = collections.defaultdict(decimal.Decimal)
         s = ret[end]['sums'] = collections.defaultdict(decimal.Decimal)
 
+        s['SickAccum'] = 0 # FINISH ME: sick init from previous year
+
         for h in ndata.hours:
-            if h.date > end: break
+            if h.date > end: break  # don't go past this period
 
-            # Full YTD calculations
             for hrkey, ratefunc, dkeys in calcs:
-                for dkey in dkeys:
-                    p[dkey + ' YTD'] += h.hours(hrkey)
-                    s[dkey + ' YTD'] += ratefunc(h.hours(hrkey), rates)
+                hrs, gross = ratefunc(h.hours(hrkey), rates)
 
-            if h.date < start: continue
+                if hrkey not in ('Sick', 'Holiday'):
+                    s['SickAccum'] += (hrs/40)
+                elif hrkey == 'Sick':
+                    s['SickAccum'] -= hrs
 
-            # Just current period calculations
-            for hrkey, ratefunc, dkeys in calcs:
                 for dkey in dkeys:
-                    p[dkey] += h.hours(hrkey)
-                    s[dkey] += ratefunc(h.hours(hrkey), rates)
+                    # YTD inclusive
+                    p[dkey + ' YTD'] += hrs
+                    s[dkey + ' YTD'] += gross
+
+                    # This period
+                    if h.date >= start:
+                        p[dkey] += hrs
+                        s[dkey] += gross
 
         for r in ndata.reimbursements:
             if r.date > end: break

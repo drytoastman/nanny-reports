@@ -115,14 +115,19 @@ def common_init():
             return "${:,}".format(val.quantize(CENTS))
         return "${:,}".format(val)
 
-    def nozero(val):
+    def h2(val):
         if not val: return ""
-        return val
+        return val.quantize(CENTS)
+
+    def h3(val):
+        if not val: return ""
+        return val.quantize(THRENTS)
 
     app.config.from_envvar('SETTINGS_FILE')
     app.jinja_env.filters['dpercent'] = dpercent
     app.jinja_env.filters['dollar']   = dollar
-    app.jinja_env.filters['nozero']   = nozero
+    app.jinja_env.filters['h2']       = h2
+    app.jinja_env.filters['h3']       = h3
 
 if __name__ == "__main__":
     os.environ['FLASK_ENV'] = 'development'
