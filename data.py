@@ -15,15 +15,37 @@ credentials = service_account.Credentials.from_service_account_file(secretfile, 
 
 class Config():
     def __init__(self, sheet):
+        self.lists = dict(nanny=dict(), child=dict(), employer=dict())
+
         for r in sheet['values']:
-            name = r[0].replace(' ', '_').lower()
-            if name in ('children', 'nannies'):
-                val = list(map(str.strip, r[1].split(',')))
-            elif name.startswith('employer'):
-                val = r[1]
+            if r[0][-1].isdigit():
+                name,num = r[0].split()
+                num = int(num)
+                if name == 'Nanny':
+                    self.lists['nanny'][num] = r[1].split(',')
+                elif name == 'Child':
+                    self.lists['child'][num] = r[1]
+                elif name == 'Employer':
+                    self.lists['employer'][num] = r[1]
             else:
+                name = r[0].replace(' ', '_').lower()
                 val = decimal.Decimal(r[1])
-            setattr(self, name, val)
+                setattr(self, name, val)
+
+    @property
+    def nannies(self):
+        return [x[0] for x in self.lists['nanny'].values()]
+
+    @property
+    def children(self):
+        return self.lists['child'].values()
+
+    def employer(self, idx):
+        return self.lists['employer'][idx]
+
+    def ssn(self, nanny):
+        return next(n[1] for n in self.lists['nanny'].values() if n[0] == nanny)
+
 
 
 class PayPeriod():

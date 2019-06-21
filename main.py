@@ -68,12 +68,14 @@ def tax():
             esdwriter   = csv.writer(esdoutput, quoting=csv.QUOTE_ALL)
             leavewriter = csv.writer(leaveoutput, quoting=csv.QUOTE_ALL)
 
-            for name, res in wadata[child][quarter].items():
-                first,last = name.split(' ')
+            for nanny, res in wadata[child][quarter].items():
+                first,last = nanny.split(' ')
+                ssn = sconfig.ssn(nanny)
                 res['hours'] = res['hours'].quantize(INTEG, rounding=decimal.ROUND_UP)
+                res['wages'] = res['wages'].quantize(CENTS)
 
-                esdwriter.writerow(  ['esd', 'ssn', last+','+first,  res['hours'], res['wages']])
-                leavewriter.writerow(       ['ssn', last, first, '', res['hours'], res['wages']])
+                esdwriter.writerow([ssn, last+','+first,  res['hours'], res['wages']])
+                leavewriter.writerow([ssn, last, first, '', res['hours'], res['wages']])
 
             wadata[child][quarter]['csv'] = dict(esd=esdoutput.getvalue(), leave=leaveoutput.getvalue())
 
