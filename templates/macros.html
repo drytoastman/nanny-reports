@@ -94,6 +94,9 @@
 
 <table class='hours'>
 {# Header row #}
+<tr class='title'>
+<th colspan=9>Hours</th>
+</tr>
 <tr>
 <th class='date'>Date</th>
 {% for name in children %}
@@ -131,7 +134,7 @@
 {% endfor %}
 
 {# Summation row #}
-<tr class='hourssum'>
+<tr class='summation'>
 <td></td>
 {% for name in children %}
 <td>{{sums['hours'][name]|h2}}</td>
@@ -151,25 +154,37 @@
 {% endmacro %}
 
 
+
 {% macro reimbursementtable() -%}
 <table class='reimbursements'>
 {% if reimb %}
+<tr class='title'>
+<th colspan=3>Reimbursements</th>
+</tr>
 <tr>
 <th class='date'>Date</th>
 <th>Amount</th>
 <th>Notes</th>
 </tr>
 
+{% set ns = namespace(sum=0) %}
 {% for r in reimb %}
+{% set ns.sum = ns.sum + r.amount %}
 <tr>
 <td style='width:15%'>{{r.date.date()}}</td>
 <td style='width:15%'>{{r.amount|dollar(True)}}</td>
 <td style='width:70%'>{{r.notes}}</td>
 </tr>
 {% endfor %}
+<tr class='summation'>
+<td></td>
+<td>{{ns.sum|dollar}}</td>
+<td></td>
+</tr>
 {% endif %}
 <table>
 {% endmacro %}
+
 
 
 {% macro singletable(name, index) -%}
