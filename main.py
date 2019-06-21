@@ -53,8 +53,11 @@ def tax():
 
 
     wadata = dict()
+    csvdata = dict()
     for child in sconfig.children:
-        wadata[child] = {ii:{n:dict(hours=0,wages=0) for n in sconfig.nannies} for ii in range(1,5)}
+        wadata[child]  = {ii:{n:dict(hours=0,wages=0) for n in sconfig.nannies} for ii in range(1,5)}
+        csvdata[child] = dict()
+
         for period in periods:
             quarter = math.ceil(period.payDate().month/3)
             pend    = period.endDate()
@@ -63,10 +66,14 @@ def tax():
                 wadata[child][quarter][nanny]['wages'] += ndata[nanny][period.endDate()]['sums'].get(child+' Gross', 0)
 
         for quarter in range(1,5):
+            # Create the WA quarter reports
             esdoutput   = io.StringIO()
             leaveoutput = io.StringIO()
-            esdwriter   = csv.writer(esdoutput, quoting=csv.QUOTE_ALL)
+            esdwriter   = csv.writer(esdoutput,   quoting=csv.QUOTE_ALL)
             leavewriter = csv.writer(leaveoutput, quoting=csv.QUOTE_ALL)
+
+            # Filter out employees with 0 wages
+            wadata[child][quarter] = {k:v for k,v in wadata[child][quarter].items() if v['wages']}
 
             for nanny, res in wadata[child][quarter].items():
                 first,last = nanny.split(' ')
@@ -77,9 +84,9 @@ def tax():
                 esdwriter.writerow([ssn, last+','+first,  res['hours'], res['wages']])
                 leavewriter.writerow([ssn, last, first, '', res['hours'], res['wages']])
 
-            wadata[child][quarter]['csv'] = dict(esd=esdoutput.getvalue(), leave=leaveoutput.getvalue())
+            csvdata[child][quarter] = dict(esd=esdoutput.getvalue(), leave=leaveoutput.getvalue())
 
-    return render_template('tax.html', sconfig=sconfig, data=data, wadata=wadata)
+    return render_template('tax.html', sconfig=sconfig, data=data, wadata=wadata, csvdata=csvdata)
 
 
 @app.route('/paystub/<enddate>/<nannyname>')

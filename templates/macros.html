@@ -227,13 +227,13 @@
 <th>Wages</th>
 </tr>
 {% for ii in range(1,5) %}
-{% for nanny in sconfig.nannies %}
+{% for nanny in data[ii] %}
 <tr>
 {% if loop.index == 1 %}
-{% set span=sconfig.nannies|length %}
+{% set span = data[ii]|length %}
 <th rowspan={{span}}>Q{{ii}}</th>
-<td rowspan={{span}}><a href='data:text/csv,{{data[ii]['csv']['esd']}}' download='esd-{{child}}-q{{ii}}.csv'>ESD</a>
-<td rowspan={{span}}><a href='data:text/csv,{{data[ii]['csv']['leave']}}' download='leave-{{child}}-q{{ii}}.csv'>Leave</a>
+<td rowspan={{span}}><a href='data:text/csv,{{csvdata[child][ii]['esd']}}' download='esd-{{child}}-q{{ii}}.csv'>ESD</a>
+<td rowspan={{span}}><a href='data:text/csv,{{csvdata[child][ii]['leave']}}' download='leave-{{child}}-q{{ii}}.csv'>Leave</a>
 {% endif %}
 <td>{{sconfig.ssn(nanny)}}</td>
 <td>{{nanny}}</td>
