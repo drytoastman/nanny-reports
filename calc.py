@@ -17,7 +17,7 @@ def sr(index, hours, rates):
 def srh(index, hours, rates):
     return sr(index, hours/2, rates)
 
-def nanny_calculate(sconfig, periods, taxtables, name, ndata):
+def nanny_calculate(sconfig, periods, taxtables, nanny, ndata):
 
     ret = dict()
     calcs = list()
@@ -36,13 +36,13 @@ def nanny_calculate(sconfig, periods, taxtables, name, ndata):
     for period in periods:
         start = period.startDate()
         end   = period.endDate()
-        rates = period.rates(name)
+        rates = period.rates(nanny)
 
         ret[end] = dict()
         p = ret[end]['hours'] = collections.defaultdict(decimal.Decimal)
         s = ret[end]['sums'] = collections.defaultdict(decimal.Decimal)
 
-        s['SickAccum'] = 0 # FINISH ME: sick init from previous year
+        s['SickAccum'] = sconfig.sickinit(nanny)
 
         for h in ndata.hours:
             if h.date > end: break  # don't go past this period
@@ -51,7 +51,7 @@ def nanny_calculate(sconfig, periods, taxtables, name, ndata):
                 hrs, gross = ratefunc(h.hours(hrkey), rates)
 
                 if hrkey not in ('Sick', 'Holiday'):
-                    s['SickAccum'] += (hrs/40)
+                    s['SickAccum'] += sconfig.sickaccum(nanny, hrs)
                 elif hrkey == 'Sick':
                     s['SickAccum'] -= hrs
 
@@ -85,10 +85,10 @@ def nanny_calculate(sconfig, periods, taxtables, name, ndata):
     for period in periods:
         start = period.startDate()
         end   = period.endDate()
-        rates = period.rates(name)
+        rates = period.rates(nanny)
 
         sums = ret[end]
-        w4   = period.withholding(name)
+        w4   = period.withholding(nanny)
         s    = sums['sums']
         t    = sums['tax'] = collections.defaultdict(decimal.Decimal)
         n    = sums['net'] = collections.defaultdict(decimal.Decimal)
