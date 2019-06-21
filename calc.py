@@ -6,7 +6,9 @@ SING   = 0
 BOTH   = 1
 SINGOT = 2
 BOTHOT = 3
+
 CENTS = decimal.Decimal('0.01')
+INTEG = decimal.Decimal('0')
 
 def sr(index, hours, rates):
     return hours * rates[index]
@@ -95,17 +97,17 @@ def nanny_calculate(sconfig, periods, taxtables, name, ndata):
         fed = taxtables.getTax(w4[0], w4[1], w4[2], totalgross)  # fed is calculated as 1 and then divided between employers
 
         for child in sconfig.children:
+            childytdgross = s[child+' Gross YTD']
             futagross = wagross = childgross = s[child+' Gross']
             fedtax = 0
 
             # Limit for FUTA per year
-            if s[child+' Gross YTD'] > sconfig.fed_unemployment_base:
-                futagross = max(0, futagross - (s[child+' Gross YTD'] - sconfig.fed_unemployment_base))
-                print("futagross = {} {}".format(end, futagross))
+            if childytdgross > sconfig.fed_unemployment_base:
+                futagross = max(0, futagross - (childytdgross - sconfig.fed_unemployment_base))
 
             # Limit for WA taxes per year
-            if s[child+' Gross YTD'] > sconfig.wa_wage_base:
-                wagross   = max(0, wagross   - (s[child+' Gross YTD'] - sconfig.wa_wage_base))
+            if childytdgross > sconfig.wa_wage_base:
+                wagross   = max(0, wagross   - (childytdgross - sconfig.wa_wage_base))
 
             if totalgross: fedtax = ((childgross / totalgross) * fed).quantize(CENTS)
             ss       = ((childgross * sconfig.social_security)/2).quantize(CENTS)

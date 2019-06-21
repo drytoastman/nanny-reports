@@ -15,7 +15,6 @@ td,th {
 }
 
 div.container {
-    display: inline-block;
     margin: 1rem;
     padding: 1rem;
     border: 1px solid #ccc;
@@ -37,6 +36,10 @@ h3 {
 <body>
 
 <div class='container'>
+<h3><a href='{{url_for('.tax')}}'>Tax Reports</a></h3>
+</div>
+
+<div class='container'>
 <h3>Paystubs (Period Ending)</h3>
 <table>
 <tr>
@@ -55,11 +58,6 @@ h3 {
 </table>
 </div>
 
-<div class='container'>
-<h3>Tax Reports</h3>
-<div><a href='{{url_for('.fed')}}'>Federal</a></div>
-<div><a href='{{url_for('.wa')}}'>Washington</a></div>
-</div>
 
 </body>
 </html>

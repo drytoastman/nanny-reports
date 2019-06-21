@@ -203,7 +203,37 @@
 {% endmacro %}
 
 
-{% macro w2(name, data) %}
+{% macro esd(child, data) %}
+<table class='esd'>
+<tr>
+<th></th>
+<th colspan=2>CSV</th>
+<th>SSN</th>
+<th>Name</th>
+<th>Hours</th>
+<th>Wages</th>
+</tr>
+{% for ii in range(1,5) %}
+{% for nanny in sconfig.nannies %}
+<tr>
+{% if loop.index == 1 %}
+{% set span=sconfig.nannies|length %}
+<th rowspan={{span}}>Q{{ii}}</th>
+<td rowspan={{span}}><a href='data:text/csv,{{data[ii]['csv']['esd']}}' download='esd-{{child}}-q{{ii}}.csv'>ESD</a>
+<td rowspan={{span}}><a href='data:text/csv,{{data[ii]['csv']['leave']}}' download='leave-{{child}}-q{{ii}}.csv'>Leave</a>
+{% endif %}
+<td>123456789</td>
+<td>{{nanny}}</td>
+<td>{{data[ii][nanny]['hours']}}</td>
+<td>{{data[ii][nanny]['wages']}}</td>
+{% endfor %}
+</tr>
+{% endfor %}
+</table>
+{% endmacro %}
+
+
+{% macro w2(data) %}
 <table class='w2'>
 <tr><th>Box</th><th>Value</th></tr>
 <tr><td>1</td> <td>{{data['gross']}}</td></tr>
@@ -214,6 +244,7 @@
 <tr><td>6</td> <td>{{data['medicare']}}</td></tr>
 </table>
 {% endmacro %}
+
 
 {% macro scheduleH(data) %}
 <table class='scheduleH'>

@@ -1,8 +1,12 @@
 #!/usr/bin/env python3
 
+import base64
 from collections import defaultdict
+import csv
 import dateutil.parser
 import decimal
+import io
+import math
 import os
 
 from flask import Flask, render_template
@@ -17,14 +21,13 @@ def index():
     sconfig, periods = get_config_data()
     return render_template("selector.html", sconfig=sconfig, periods=periods)
 
-@app.route('/fed')
-def fed():
+@app.route('/tax')
+def tax():
     sconfig, periods = get_config_data()
     taxtables = get_tax_data()
     lastp     = periods[-1].endDate()
     data      = dict()
-
-    ndata = dict()
+    ndata     = dict()
     for name in sconfig.nannies:
         ndata[name] = nanny_calculate(sconfig, periods, taxtables, name, get_nanny_data(name))
 
@@ -48,11 +51,34 @@ def fed():
         data[child]['scheduleH']['medicare'] = (data[child]['scheduleH']['gross']     * sconfig.medicare).quantize(CENTS)
         data[child]['scheduleH']['futa']     = (data[child]['scheduleH']['futagross'] * sconfig.fed_unemployment).quantize(CENTS)
 
-    return render_template('fed.html', sconfig=sconfig, data=data)
 
-@app.route('/wa')
-def wa():
-    return render_template('wa.html')
+    wadata = dict()
+    for child in sconfig.children:
+        wadata[child] = {ii:{n:dict(hours=0,wages=0) for n in sconfig.nannies} for ii in range(1,5)}
+        for period in periods:
+            quarter = math.ceil(period.payDate().month/3)
+            pend    = period.endDate()
+            for nanny in sconfig.nannies:
+                wadata[child][quarter][nanny]['hours'] += ndata[nanny][period.endDate()]['hours'].get(child+' Gross', 0)
+                wadata[child][quarter][nanny]['wages'] += ndata[nanny][period.endDate()]['sums'].get(child+' Gross', 0)
+
+        for quarter in range(1,5):
+            esdoutput   = io.StringIO()
+            leaveoutput = io.StringIO()
+            esdwriter   = csv.writer(esdoutput, quoting=csv.QUOTE_ALL)
+            leavewriter = csv.writer(leaveoutput, quoting=csv.QUOTE_ALL)
+
+            for name, res in wadata[child][quarter].items():
+                first,last = name.split(' ')
+                res['hours'] = res['hours'].quantize(INTEG, rounding=decimal.ROUND_UP)
+
+                esdwriter.writerow(  ['esd', 'ssn', last+','+first,  res['hours'], res['wages']])
+                leavewriter.writerow(       ['ssn', last, first, '', res['hours'], res['wages']])
+
+            wadata[child][quarter]['csv'] = dict(esd=esdoutput.getvalue(), leave=leaveoutput.getvalue())
+
+    return render_template('tax.html', sconfig=sconfig, data=data, wadata=wadata)
+
 
 @app.route('/paystub/<enddate>/<nannyname>')
 def paystub(enddate, nannyname):
