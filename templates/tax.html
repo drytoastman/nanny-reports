@@ -63,7 +63,7 @@ h4 {
 {% for child in sconfig.children %}
 <div class='employer'>
 <h4>{{sconfig.ename(child)}} <span class='id'>{{sconfig.ein(child)}}</span></h4>
-{{m.esd(child, wadata[child])}}
+{{m.esd(sconfig.ename(child), child, wadata[child])}}
 </div>
 {% endfor %}
 </div>

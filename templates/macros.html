@@ -212,7 +212,7 @@
 {% endmacro %}
 
 
-{% macro esd(child, data) %}
+{% macro esd(employer, child, data) %}
 <table class='esd'>
 <tr>
 <th></th>
@@ -228,8 +228,8 @@
 {% if loop.index == 1 %}
 {% set span = data[ii]|length %}
 <th rowspan={{span}}>Q{{ii}}</th>
-<td rowspan={{span}}><a href='data:text/csv,{{csvdata[child][ii]['esd']}}' download='esd-{{child}}-q{{ii}}.csv'>ESD</a>
-<td rowspan={{span}}><a href='data:text/csv,{{csvdata[child][ii]['leave']}}' download='leave-{{child}}-q{{ii}}.csv'>Leave</a>
+<td rowspan={{span}}><a href='data:text/csv,{{csvdata[child][ii]['esd']}}' download='esd-{{employer}}-q{{ii}}.csv'>ESD</a>
+<td rowspan={{span}}><a href='data:text/csv,{{csvdata[child][ii]['leave']}}' download='leave-{{employer}}-q{{ii}}.csv'>Leave</a>
 {% endif %}
 <td>{{sconfig.ssn(nanny)}}</td>
 <td>{{nanny}}</td>
