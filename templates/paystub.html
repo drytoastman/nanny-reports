@@ -104,7 +104,7 @@ tr.info th {
 {% import "macros.html" as m with context %}
 <body>
 {% for name in children %}
-{{ m.singletable(name, loop.index) }}
+{{ m.singletable(name) }}
 <hr/>
 {% endfor %}
 

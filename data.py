@@ -38,13 +38,6 @@ class Config():
     def nannies(self):
         return [x[0] for x in self.lists['nanny'].values()]
 
-    @property
-    def children(self):
-        return self.lists['child'].values()
-
-    def employer(self, idx):
-        return self.lists['employer'][idx]
-
     def nannyidx(self, nanny):
         return next(k for k,v in self.lists['nanny'].items() if v[0] == nanny)
 
@@ -55,6 +48,23 @@ class Config():
         hoursper = self.lists['sickaccum'][self.nannyidx(nanny)]
         if hoursper:  return hours/hoursper
         return 0
+
+
+    @property
+    def children(self):
+        return self.lists['child'].values()
+
+    def childidx(self, child):
+        return next(k for k,v in self.lists['child'].items() if v == child)
+
+    def employer(self, child):
+        return self.lists['employer'][self.childidx(child)]
+
+    def ein(self, child):
+        return self.employer(child).split()[-1]
+
+    def ename(self, child):
+        return self.employer(child).split()[0]
 
 
 class PayPeriod():

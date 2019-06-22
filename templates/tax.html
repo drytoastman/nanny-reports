@@ -4,42 +4,52 @@
 <style>
 body {
     font-family: sans-serif;
+    color: #333;
 }
-div.outer div.child { 
-    padding: 1rem; 
-    margin: 1rem;
+
+div.outer div { 
+    padding: 0.4rem; 
+    margin:  0.4rem;
     display: inline-block; 
-    border:  1px solid #ddd; 
-}
-div.outer div.nanny { 
     border:  1px solid #ccc; 
-    margin:  1rem; 
-    padding: 1rem; 
-    display: inline-block; 
+    border-radius: 4px;
 }
+
 td, th {
     padding-left: 1rem;
+    font-size: 90%;
 }
+
 td {
     text-align: right;
 }
+
 tr.net {
     font-weight: bold;
     font-size: 120%;
 }
 
+span.id {
+    font-weight: normal;
+    font-size: 90%;
+}
+
 table {
     border-collapse: collapse;
 }
+
 table.esd td, table.esd th {
     border-bottom: 1px solid #ccc;
 }
 
 h3 {
     border-bottom: 1px solid #ccc;
+    margin-bottom: 0.2rem;
 }
+
 h4 {
-    margin: 0
+    margin: 0;
+    margin-bottom: 0.2rem;
 }
 </style>
 </head>
@@ -51,8 +61,8 @@ h4 {
 <h3>WA Quarters</h3>
 
 {% for child in sconfig.children %}
-<div class='child'>
-<h4>{{child}}</h4>
+<div class='employer'>
+<h4>{{sconfig.ename(child)}} <span class='id'>{{sconfig.ein(child)}}</span></h4>
 {{m.esd(child, wadata[child])}}
 </div>
 {% endfor %}
@@ -63,11 +73,11 @@ h4 {
 <h3>Fed W2</h3>
 
 {% for child in sconfig.children %}
-<div class='child'>
-<h4>{{child}}</h4>
+<div class='employer'>
+<h4>{{sconfig.ename(child)}} <span class='id'>{{sconfig.ein(child)}}</span></h4>
 {% for nanny in sconfig.nannies %}
 <div class='nanny'>
-<h4>{{nanny}}</h4>
+<h4>{{nanny}} <span class='id'>{{sconfig.ssn(nanny)}}</span></h4>
 {{m.w2(data[child][nanny])}}
 </div>
 {% endfor %}
@@ -80,8 +90,8 @@ h4 {
 <h3>Fed Schedule H</h3>
 
 {% for child in sconfig.children %}
-<div class='child'>
-<h4>{{child}}</h4>
+<div class='employer'>
+<h4>{{sconfig.ename(child)}} <span class='id'>{{sconfig.ein(child)}}</span></h4>
 {{m.scheduleH(data[child]['scheduleH'])}}
 </div>
 {% endfor %}

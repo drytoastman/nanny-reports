@@ -1,4 +1,4 @@
-{% macro headerrow(name, index=None) %}
+{% macro headerrow(name) %}
 <tr class='header'><td colspan=6>
 
 <div class='float'>
@@ -18,12 +18,8 @@
 </div>
 
 <div class='float'>
-{% if index %}
 <div><span class='header'>Employer</span></div>
-<div><span class='value'>{{sconfig.employer(index)|replace('\n','<br/>')|safe}}</span></div>
-{% else %}
-<div><span class='header'>Combined</span></div>
-{% endif %}
+<div><span class='value'>{{sconfig.employer(name)|replace('\n','<br/>')|safe}}</span></div>
 </div>
 </td>
 
@@ -187,9 +183,9 @@
 
 
 
-{% macro singletable(name, index) -%}
+{% macro singletable(name) -%}
 <table class='paystub'>
-{{headerrow(name, index)}}
+{{headerrow(name)}}
 {{periodytd()}}
 {{sumrow('One-Child',               rates[0],           name)}}
 {{sumrow('Two-Child Half',          rates[1],           name+' Both')}}
@@ -249,12 +245,12 @@
 {% macro w2(data) %}
 <table class='w2'>
 <tr><th>Box</th><th>Value</th></tr>
-<tr><td>1</td> <td>{{data['gross']}}</td></tr>
-<tr><td>2</td> <td>{{data['fed']}}</td></tr>
-<tr><td>3</td> <td>{{data['gross']}}</td></tr>
-<tr><td>4</td> <td>{{data['ss']}}</td></tr>
-<tr><td>5</td> <td>{{data['gross']}}</td></tr>
-<tr><td>6</td> <td>{{data['medicare']}}</td></tr>
+<tr><td>1</td> <td>{{data['gross']|dollar}}</td></tr>
+<tr><td>2</td> <td>{{data['fed']|dollar}}</td></tr>
+<tr><td>3</td> <td>{{data['gross']|dollar}}</td></tr>
+<tr><td>4</td> <td>{{data['ss']|dollar}}</td></tr>
+<tr><td>5</td> <td>{{data['gross']|dollar}}</td></tr>
+<tr><td>6</td> <td>{{data['medicare']|dollar}}</td></tr>
 </table>
 {% endmacro %}
 
