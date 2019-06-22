@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+
+body {
+    font-family: sans-serif;
+    margin: 1rem;
+}
+
+ul {
+    list-style-type: none;
+}
+
+li {
+    padding-bottom: 0.4rem;
+}
+
+</style>
+</head>
+
+<body>
+
+<h3>Active Report Years</h3>
+<ul>
+{% for year in years %}
+<li><a href='{{url_for('.index', year=year)}}'>{{year}}</a></li>
+{% endfor %}
+</ul>
+
+</body>
+</html>

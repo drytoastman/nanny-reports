@@ -58,7 +58,7 @@ h4 {
 {% import "macros.html" as m with context %}
 
 <div class='outer'>
-<h3>WA Quarters</h3>
+<h3>WA Quarters {{g.year}}</h3>
 
 {% for child in sconfig.children %}
 <div class='employer'>
@@ -70,7 +70,7 @@ h4 {
 
 
 <div class='outer'>
-<h3>Fed W2</h3>
+<h3>Fed W2 {{g.year}}</h3>
 
 {% for child in sconfig.children %}
 <div class='employer'>
@@ -87,7 +87,7 @@ h4 {
 
 
 <div class='outer'>
-<h3>Fed Schedule H</h3>
+<h3>Fed Schedule H {{g.year}}</h3>
 
 {% for child in sconfig.children %}
 <div class='employer'>

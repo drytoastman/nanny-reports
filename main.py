@@ -9,19 +9,36 @@ import io
 import math
 import os
 
-from flask import Flask, render_template
+from flask import g, Flask, redirect, render_template, url_for
 
 from data import *
 from calc import *
 
 app = Flask("nanny-reports")
 
+@app.url_value_preprocessor
+def preprocessor(endpoint, values):
+    if values is not None:
+        g.year = int(values.pop('year', 0))
+
+@app.url_defaults
+def urldefaults(endpoint, values):
+    if 'year' not in values and getattr(g, 'year') and current_app.url_map.is_endpoint_expecting(endpoint, 'year'):
+        values['year'] = g.year
+
 @app.route('/')
+def yearselect():
+    years = [x[-4:] for x in current_app.config.keys() if x.startswith('SPREADSHEET')]
+    if len(years) == 1:
+        return redirect(url_for('.index', year=years[0]))
+    return render_template("year.html", years=years)
+
+@app.route('/<int:year>')
 def index():
     sconfig, periods = get_config_data()
     return render_template("selector.html", sconfig=sconfig, periods=periods)
 
-@app.route('/tax')
+@app.route('/<int:year>/tax')
 def tax():
     sconfig, periods = get_config_data()
     taxtables = get_tax_data()
@@ -89,7 +106,7 @@ def tax():
     return render_template('tax.html', sconfig=sconfig, data=data, wadata=wadata, csvdata=csvdata)
 
 
-@app.route('/paystub/<enddate>/<nannyname>')
+@app.route('/<int:year>/paystub/<enddate>/<nannyname>')
 def paystub(enddate, nannyname):
 
     enddate   = dateutil.parser.parse(enddate.replace('_','/')) 

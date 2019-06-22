@@ -5,6 +5,7 @@
 
 body {
     font-family: sans-serif;
+    margin: 1rem;
 }
 
 td,th {
@@ -15,7 +16,7 @@ td,th {
 }
 
 div.container {
-    margin: 1rem;
+    margin:  1rem 0;
     padding: 1rem;
     border: 1px solid #ccc;
     border-radius: 5px;
@@ -26,7 +27,7 @@ div.container div {
     margin: 0.5rem 0rem 0rem 0rem; 
 }
 
-h3 {
+h4 {
     margin-top: 0rem;
     margin-bottom: 1rem;
 }
@@ -35,12 +36,12 @@ h3 {
 
 <body>
 
-<div class='container'>
-<h3><a href='{{url_for('.tax')}}'>Tax Reports</a></h3>
-</div>
+<h3>Nanny Reports {{g.year}}</h3>
 
 <div class='container'>
-<h3>Paystubs (Period Ending)</h3>
+<h4><a href='{{url_for('.tax')}}'>Tax Reports</a></h4>
+
+<h4>Paystubs (Period Ending)</h4>
 <table>
 <tr>
 {% for nanny in sconfig.nannies %}

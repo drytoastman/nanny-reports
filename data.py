@@ -155,47 +155,36 @@ class Reimbursement():
         return [ cls(sheet['values'][1], r) for r in sheet['values'][2:] ]
 
 
-def get_api():
+def _get_api():
     if not hasattr(g, 'api'):
         service = googleapiclient.discovery.build('sheets', 'v4', credentials=credentials)
         g.api   = service.spreadsheets()
     return g.api
 
 
-def get_config_data():
-    if current_app.config['ENV'] == 'development' and os.path.isfile('config.json'):
-        with open('config.json', 'r') as fp:
-            config = json.load(fp)
+def _get_data(testfile, ranges):
+    if current_app.config['ENV'] == 'development' and os.path.isfile(testfile):
+        with open(testfile, 'r') as fp:
+            data = json.load(fp)
     else:
-        config = get_api().values().batchGet(spreadsheetId=current_app.config['SPREADSHEET_ID'], ranges=['Config', 'PayPeriods']).execute()
+        data = _get_api().values().batchGet(spreadsheetId=current_app.config['SPREADSHEET_ID_{}'.format(g.year)], ranges=ranges).execute()
         if current_app.config['ENV'] == 'development':
-            with open('config.json', 'w') as fp:
-                json.dump(config, fp)
+            with open(testfile, 'w') as fp:
+                json.dump(data, fp)
+    return data
+
+
+def get_config_data():
+    config = _get_data('{}_config.json'.format(g.year), ['Config', 'PayPeriods'])
     return Config(config['valueRanges'][0]), PayPeriod.parseSheet(config['valueRanges'][1])
 
 
 def get_tax_data():
-    if current_app.config['ENV'] == 'development' and os.path.isfile('tax.json'):
-        with open('tax.json', 'r') as fp:
-            tax = json.load(fp)
-    else:
-        tax = get_api().values().batchGet(spreadsheetId=current_app.config['SPREADSHEET_ID'], ranges=['Single Bracket', 'Married Bracket']).execute()
-        if current_app.config['ENV'] == 'development':
-            with open('tax.json', 'w') as fp:
-                json.dump(tax, fp)
-
+    tax = _get_data('{}_tax.json'.format(g.year), ['Single Bracket', 'Married Bracket'])
     return TaxTables(*tax['valueRanges'])
 
 
 def get_nanny_data(name):
-    if current_app.config['ENV'] == 'development' and os.path.isfile('{}.json'.format(name)):
-        with open('{}.json'.format(name), 'r') as fp:
-            data = json.load(fp)
-    else:
-        data = get_api().values().batchGet(spreadsheetId=current_app.config['SPREADSHEET_ID'], ranges=['{} Hours'.format(name), '{} Reimbursements'.format(name)]).execute()
-        if current_app.config['ENV'] == 'development':
-            with open('{}.json'.format(name), 'w') as fp:
-                json.dump(data, fp)
-
+    data = _get_data('{}_{}.json'.format(g.year, name.replace(' ','_')), ['{} Hours'.format(name), '{} Reimbursements'.format(name)])
     return types.SimpleNamespace(hours = Hours.parseSheet(data['valueRanges'][0]), reimbursements = Reimbursement.parseSheet(data['valueRanges'][1]))
 
