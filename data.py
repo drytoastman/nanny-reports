@@ -13,6 +13,17 @@ import googleapiclient.discovery
 secretfile  = os.path.join(os.getcwd(), 'creds.json')
 credentials = service_account.Credentials.from_service_account_file(secretfile, scopes=['https://www.googleapis.com/auth/spreadsheets.readonly'])
 
+
+DEC0 = decimal.Decimal(0)
+
+def str2dec(val):
+    sval = val.replace(',', '').replace('%','').strip()
+    ret = decimal.Decimal(sval)
+    if val[-1] == '%':
+        ret = ret/100
+    return ret
+
+
 class Config():
     def __init__(self, sheet):
         self.lists = dict(nanny=dict(), child=dict(), employer=dict(), sickaccum=dict())
@@ -22,17 +33,18 @@ class Config():
                 name,num = r[0].split()
                 num = int(num)
                 if name == 'Nanny':
-                    self.lists['nanny'][num] = r[1].split(',')
+                    self.lists['nanny'][num] = r[1].split('\n')
                 elif name == 'Child':
                     self.lists['child'][num] = r[1]
                 elif name == 'Employer':
                     self.lists['employer'][num] = r[1]
                 elif name == 'SickAccum':
-                    self.lists['sickaccum'][num] = decimal.Decimal(r[1])
+                    self.lists['sickaccum'][num] = str2dec(r[1])
             else:
                 name = r[0].replace(' ', '_').lower()
-                val = decimal.Decimal(r[1])
+                val = str2dec(r[1])
                 setattr(self, name, val)
+
 
     @property
     def nannies(self):
@@ -76,7 +88,7 @@ class PayPeriod():
     def startDate(self):         return dateutil.parser.parse(self.data['Start'])
     def endDate(self):           return dateutil.parser.parse(self.data['End'])
     def payDate(self):           return dateutil.parser.parse(self.data['PayDate'])
-    def rates(self, name):       return list(map(decimal.Decimal, map(str.strip, self.data['{} Rates'.format(name)].split(','))))
+    def rates(self, name):       return list(map(str2dec, map(str.strip, self.data['{} Rates'.format(name)].split(','))))
     def withholding(self, name): return list(map(int, map(str.strip, self.data['{} Withholding'.format(name)].split(','))))
     def __repr__(self):          return str(self.__dict__)
 
@@ -94,8 +106,8 @@ class TaxTables():
         amounts = []
         allowances = []
         for row in sheet['values'][1:]:
-            amounts.append(decimal.Decimal(row[0]))
-            allowances.append(list(map(decimal.Decimal, row[1:])))
+            amounts.append(str2dec(row[0]))
+            allowances.append(list(map(str2dec, row[1:])))
 
         return (amounts, allowances)
 
@@ -119,10 +131,10 @@ class Hours():
             elif name == 'Date':
                 self.date = dateutil.parser.parse(val)
             else:
-                self.data[name] = val and decimal.Decimal(val) or decimal.Decimal(0)
+                self.data[name] = val and str2dec(val) or DEC0
 
     def date(self): return self.date
-    def hours(self, name): return self.data.get(name, decimal.Decimal())
+    def hours(self, name): return self.data.get(name, DEC0)
     def __repr__(self): return str(self.__dict__)
 
     @classmethod
@@ -134,7 +146,7 @@ class Reimbursement():
     def __init__(self, header, row):
         for name, val in zip(header, row):
             if name == 'Date': self.date = dateutil.parser.parse(val)
-            elif name == 'Amount': self.amount = decimal.Decimal(val)
+            elif name == 'Amount': self.amount = str2dec(val)
             elif name == 'Notes': self.notes = val
     def __repr__(self): return str(self.__dict__)
 
