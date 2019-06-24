@@ -3,8 +3,10 @@
 
 <div class='float'>
 <div><span class='header'>PayPeriod</span></div>
-<div><span class='value'>{{period.startDate().date()}}</span></div>
-<div><span class='value'>{{period.endDate().date()}}</span></div>
+<div><span class='value'>{{period.startDate().strftime("%a %b %d, %Y")}}</span></div>
+<div><span class='value'>{{period.endDate().strftime("%a %b %d, %Y")}}</span></div>
+<div><span class='header'>PayDate</span></div>
+<div><span class='value'>{{period.payDate().strftime("%a %b %d, %Y")}}</span></div>
 </div>
 
 <div class='float'>
@@ -16,6 +18,7 @@
 <div><span class='header'>Childcare For</span></div>
 <div><span class='value'>{{name}}</span></div>
 </div>
+
 
 <div class='float'>
 <div><span class='header'>Employer</span></div>
@@ -115,7 +118,7 @@
 {% set ns.holiday = ns.holiday + h.data.get('Holiday', 0) %}
 
 <tr>
-<td class='date'>{{h.date.date()}}</td>
+<td class='date'>{{h.date.strftime("%a %b %d, %Y")}}</td>
 {% for name in children %}
 <td>{{h.data[name]|h2}}</td>
 {% endfor %}
@@ -167,14 +170,14 @@
 {% for r in reimb %}
 {% set ns.sum = ns.sum + r.amount %}
 <tr>
-<td style='width:15%'>{{r.date.date()}}</td>
-<td style='width:15%'>{{r.amount|dollar(True)}}</td>
-<td style='width:70%'>{{r.notes}}</td>
+<td class='date'>{{r.date.strftime("%a %b %d, %Y")}}</td>
+<td class='amount'>{{r.amount|dollar(True)}}</td>
+<td class='notes'>{{r.notes}}</td>
 </tr>
 {% endfor %}
 <tr class='summation'>
 <td></td>
-<td>{{ns.sum|dollar}}</td>
+<td>{{ns.sum|dollar(True)}}</td>
 <td></td>
 </tr>
 {% endif %}
