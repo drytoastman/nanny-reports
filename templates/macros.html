@@ -224,6 +224,7 @@
 <th>Name</th>
 <th>Hours</th>
 <th>Wages</th>
+<th>Leave</th>
 </tr>
 {% for ii in range(1,5) %}
 {% for nanny in data[ii] %}
@@ -238,6 +239,10 @@
 <td>{{nanny}}</td>
 <td>{{data[ii][nanny]['hours']}}</td>
 <td>{{data[ii][nanny]['wages']}}</td>
+{% if loop.index == 1 %}
+{% set span = data[ii]|length %}
+<td rowspan={{span}}>{{waleave[child][ii]}}</td>
+{% endif %}
 {% endfor %}
 </tr>
 {% endfor %}

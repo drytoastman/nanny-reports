@@ -71,16 +71,19 @@ def tax():
 
     wadata = dict()
     csvdata = dict()
+    waleave = dict()
     for child in sconfig.children:
-        wadata[child]  = {ii:{n:dict(hours=0,wages=0) for n in sconfig.nannies} for ii in range(1,5)}
+        wadata[child]  = {ii:{n:dict(hours=0, wages=0, waleave=0) for n in sconfig.nannies} for ii in range(1,5)}
         csvdata[child] = dict()
 
         for period in periods:
             quarter = math.ceil(period.payDate().month/3)
             pend    = period.endDate()
             for nanny in sconfig.nannies:
-                wadata[child][quarter][nanny]['hours'] += ndata[nanny][period.endDate()]['hours'].get(child+' Gross', 0)
-                wadata[child][quarter][nanny]['wages'] += ndata[nanny][period.endDate()]['sums'].get(child+' Gross', 0)
+                wadata[child][quarter][nanny]['hours']  += ndata[nanny][period.endDate()]['hours'].get(child+' Gross', 0)
+                wadata[child][quarter][nanny]['wages']  += ndata[nanny][period.endDate()]['sums'].get(child+' Gross', 0)
+                wadata[child][quarter][nanny]['waleave'] += ndata[nanny][period.endDate()]['tax'].get(child+' WALeave', 0)
+
 
         for quarter in range(1,5):
             # Create the WA quarter reports
@@ -103,7 +106,13 @@ def tax():
 
             csvdata[child][quarter] = dict(esd=esdoutput.getvalue(), leave=leaveoutput.getvalue())
 
-    return render_template('tax.html', sconfig=sconfig, data=data, wadata=wadata, csvdata=csvdata)
+
+    for child in wadata:
+        waleave[child] = dict()
+        for quarter in wadata[child]:
+            waleave[child][quarter] = sum(x['waleave'] for x in wadata[child][quarter].values())
+
+    return render_template('tax.html', sconfig=sconfig, data=data, wadata=wadata, csvdata=csvdata, waleave=waleave)
 
 
 @app.route('/<int:year>/paystub/<enddate>/<nannyname>')
