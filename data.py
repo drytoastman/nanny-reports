@@ -26,7 +26,7 @@ def str2dec(val):
 
 class Config():
     def __init__(self, sheet):
-        self.lists = dict(nanny=dict(), child=dict(), employer=dict(), sickaccum=dict())
+        self.lists = dict(nanny=dict(), child=dict(), childfullname=dict(), employer=dict(), sickaccum=dict())
 
         for r in sheet['values']:
             if r[0][-1].isdigit():
@@ -35,7 +35,8 @@ class Config():
                 if name == 'Nanny':
                     self.lists['nanny'][num] = r[1].split('\n')
                 elif name == 'Child':
-                    self.lists['child'][num] = r[1]
+                    self.lists['childfullname'][num] = r[1]
+                    self.lists['child'][num]         = r[1].split()[0]
                 elif name == 'Employer':
                     self.lists['employer'][num] = r[1]
                 elif name == 'SickAccum':
@@ -61,6 +62,10 @@ class Config():
         if hoursper:  return hours/hoursper
         return 0
 
+
+    @property
+    def childrenfullname(self):
+        return self.lists['childfullname'].values()
 
     @property
     def children(self):

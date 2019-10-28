@@ -1,4 +1,4 @@
-{% macro headerrow(name) %}
+{% macro headerrow(name, fullname) %}
 <tr class='header'><td colspan=6>
 
 <div class='float'>
@@ -10,13 +10,13 @@
 </div>
 
 <div class='float'>
-<div><span class='header'>Employee</span></div>
+<div><span class='header'>Childcare Provider</span></div>
 <div><span class='value'>{{nanny}}</span></div>
 </div>
 
 <div class='float'>
 <div><span class='header'>Childcare For</span></div>
-<div><span class='value'>{{name}}</span></div>
+<div><span class='value'>{{fullname}}</span></div>
 </div>
 
 
@@ -27,6 +27,8 @@
 </td>
 
 </tr>
+
+<tr class='info'><td colspan=6>For childcare services provided for {{fullname}} by {{nanny}}</td></tr>
 <tr class='divider'><td colspan=6></tr>
 {% endmacro %}
 
@@ -98,11 +100,11 @@
 </tr>
 <tr>
 <th class='date'>Date</th>
-{% for name in children %}
+{% for name,fullname in children %}
 <th>{{name}}</th>
 {% endfor %}
 <th>Both</th>
-{% for name in children %}
+{% for name,fullname in children %}
 <th>{{name}} OT</th>
 {% endfor %}
 <th>Both OT</th>
@@ -119,11 +121,11 @@
 
 <tr>
 <td class='date'>{{h.date.strftime("%a %b %d, %Y")}}</td>
-{% for name in children %}
+{% for name,fullname in children %}
 <td>{{h.data[name]|h2}}</td>
 {% endfor %}
 <td>{{h.data['Both']|h2}}</td>
-{% for name in children %}
+{% for name,fullname in children %}
 <td>{{h.data[name+' OT']|h2}}</td>
 {% endfor %}
 <td>{{h.data['Both OT']|h2}}</td>
@@ -135,11 +137,11 @@
 {# Summation row #}
 <tr class='summation'>
 <td></td>
-{% for name in children %}
+{% for name,fullname in children %}
 <td>{{sums['hours'][name]|h2}}</td>
 {% endfor %}
 <td>{{ns.both|h2}}</td>
-{% for name in children %}
+{% for name,fullname in children %}
 <td>{{sums['hours'][name+' OT']|h2}}</td>
 {% endfor %}
 <td>{{ns.bothot|h2}}</td>
@@ -186,9 +188,9 @@
 
 
 
-{% macro singletable(name) -%}
+{% macro singletable(name, fullname) -%}
 <table class='paystub'>
-{{headerrow(name)}}
+{{headerrow(name, fullname)}}
 {{periodytd()}}
 {{sumrow('One-Child',               rates[0],           name)}}
 {{sumrow('Two-Child Half',          rates[1],           name+' Both')}}

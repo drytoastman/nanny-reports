@@ -60,6 +60,10 @@ table.paystub tr.summation td, tr.netpay td {
     padding-bottom: 1rem;
 }
 
+tr.info td {
+    font-style: italic;
+}
+
 tr.header div.float {
     float: left;
     width: 25%;
@@ -115,8 +119,8 @@ tr.info th {
 
 {% import "macros.html" as m with context %}
 <body>
-{% for name in children %}
-{{ m.singletable(name) }}
+{% for name, fullname in children %}
+{{ m.singletable(name, fullname) }}
 <hr/>
 {% endfor %}
 

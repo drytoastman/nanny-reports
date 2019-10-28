@@ -130,8 +130,9 @@ def paystub(enddate, nannyname):
     reimb   = [r for r in ndata.reimbursements if period.startDate() <= r.date <= period.endDate()]
     psums   = results[enddate]
     rates   = period.rates(nannyname)
+    children = list(zip(sconfig.children, sconfig.childrenfullname))
 
-    return render_template('paystub.html', sums=psums, hours=hours, reimb=reimb, period=period, rates=rates, sconfig=sconfig, nanny=nannyname, children=sconfig.children)
+    return render_template('paystub.html', sums=psums, hours=hours, reimb=reimb, period=period, rates=rates, sconfig=sconfig, nanny=nannyname, children=children)
 
 
 def common_init():
