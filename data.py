@@ -54,8 +54,11 @@ class Config():
     def nannyidx(self, nanny):
         return next(k for k,v in self.lists['nanny'].items() if v[0] == nanny)
 
+    def address(self, nanny):
+        return self.lists['nanny'][self.nannyidx(nanny)][1:-1]
+
     def ssn(self, nanny):
-        return self.lists['nanny'][self.nannyidx(nanny)][1]
+        return self.lists['nanny'][self.nannyidx(nanny)][-1]
 
     def sickaccum(self, nanny, hours):
         hoursper = self.lists['sickaccum'][self.nannyidx(nanny)]

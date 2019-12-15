@@ -77,7 +77,7 @@ h4 {
 <h4>{{sconfig.ename(child)}} <span class='id'>{{sconfig.ein(child)}}</span></h4>
 {% for nanny in sconfig.nannies %}
 <div class='nanny'>
-<h4>{{nanny}} <span class='id'>{{sconfig.ssn(nanny)}}</span></h4>
+<h4>{{nanny}} <span class='id'><br/>{{sconfig.address(nanny)|join("<br>")|safe}}<br/>{{sconfig.ssn(nanny)}}</span></h4>
 {{m.w2(data[child][nanny])}}
 </div>
 {% endfor %}
