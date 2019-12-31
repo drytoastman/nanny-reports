@@ -1,7 +1,9 @@
 
 import bisect
+import collections
 import dateutil.parser
 import decimal
+import logging
 import json
 import os
 import types
@@ -15,6 +17,7 @@ credentials = service_account.Credentials.from_service_account_file(secretfile, 
 
 
 DEC0 = decimal.Decimal(0)
+log = logging.getLogger(__name__)
 
 def str2dec(val):
     sval = val.replace(',', '').replace('%','').strip()
@@ -105,7 +108,7 @@ class PayPeriod():
         return sorted([ cls(sheet['values'][0], r) for r in sheet['values'][1:] ], key=lambda x: x.endDate())
 
 
-class TaxTables():
+class TaxTablesPre20():
     def __init__(self, single, married):
         self.single  = self.parseSheet(single)
         self.married = self.parseSheet(married)
@@ -119,15 +122,49 @@ class TaxTables():
 
         return (amounts, allowances)
 
-    def getTax(self, married, allow, extra, gross):
-        if married:
+    def getTax(self, w4, gross):
+        if w4[0]:
             amounts = self.married[0]
             allowances = self.married[1]
         else:
             amounts = self.single[0]
             allowances = self.single[1]
 
-        return allowances[bisect.bisect_left(amounts, gross)-1][allow] + extra
+        return allowances[bisect.bisect_left(amounts, gross)-1][w4[1]] + w4[2]
+
+
+class TaxTablesPost20():
+    W4COLS = ['1c', '2c', '3', '4a', '4b', '4c']
+
+    def __init__(self, taxtables):
+        self.tables = collections.defaultdict(list)
+        w4 = [0,0]
+        for row in taxtables['values']:
+            if len(row) == 1 and len(row[0].strip()) == 7: # our table indicator
+                exec(row[0].strip())
+            elif len(row) == 5:
+                self.tables[tuple(w4)].append(row)
+            else:
+                log.warning("invalid row {}".format(row))
+
+
+    def getTax(self, w4, gross):
+        w4c     = {x:w4[ii] for ii, x in enumerate(self.W4COLS)}
+        table   = self.tables[(w4c['1c'], w4c['2c'])]
+        periods = 26
+        annual  = (gross * periods) + w4c['4a']
+
+        for row in table:
+            (start, end, base, bracket, standard) = list(map(str2dec, row))
+            deductions = w4c['4b'] + standard
+            adjannwage = max(annual - deductions, 0)
+
+            if start <= adjannwage < end:
+                basetax  = decimal.Decimal((((adjannwage - start) * bracket) + base) / periods)
+                credits  = decimal.Decimal(w4c['3'] / periods)
+                withhold = max(basetax - credits, 0) + w4c['4c']
+                return withhold.quantize(decimal.Decimal('0.01'))
+        return 0
 
 
 class Hours():
@@ -188,8 +225,12 @@ def get_config_data():
 
 
 def get_tax_data():
-    tax = _get_data('{}_tax.json'.format(g.year), ['Single Bracket', 'Married Bracket'])
-    return TaxTables(*tax['valueRanges'])
+    if g.year <= 2019:
+        tax = _get_data('{}_tax.json'.format(g.year), ['Single Bracket', 'Married Bracket'])
+        return TaxTablesPre20(*tax['valueRanges'])
+    else:
+        tax = _get_data('{}_tax.json'.format(g.year), ['Tax Tables'])
+        return TaxTablesPost20(*tax['valueRanges'])
 
 
 def get_nanny_data(name):

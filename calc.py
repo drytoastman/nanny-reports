@@ -97,7 +97,7 @@ def nanny_calculate(sconfig, periods, taxtables, nanny, ndata):
         totalgross = decimal.Decimal(0)
         for child in sconfig.children:
             totalgross += s[child+' Gross']
-        fed = taxtables.getTax(w4[0], w4[1], w4[2], totalgross)  # fed is calculated as 1 and then divided between employers
+        fed = taxtables.getTax(w4, totalgross)  # fed is calculated as 1 and then divided between employers
 
         for child in sconfig.children:
             childytdgross = s[child+' Gross YTD']
